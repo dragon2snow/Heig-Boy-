@@ -1,0 +1,5 @@
+[output]
+testprog.gb
+
+[objects]
+testprog.obj
