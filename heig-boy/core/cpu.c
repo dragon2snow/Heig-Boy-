@@ -5,19 +5,21 @@
 /** Registres du processeur (BC, DE, HL, AF dans cet ordre) */
 static u8 registers[8];
 static u16 SP, PC;
-// Simples & paires
+// Index des registres dans le tableau (simples & paires)
 enum {R_B = 0, R_C, R_D, R_E, R_H, R_L, R_A, R_F};
 enum {R_BC = 0, R_DE, R_HL, R_AF};
 
 /** Lit une paire de registres */
 static u16 read_pair(u16 index) {
-	return registers[index * 2] | registers[index * 2 + 1] << 8;
+	index = (index & 3) << 1;		// modulo 4 paires, fois 2 octets
+	return registers[index] | registers[index + 1] << 8;
 }
 
 /** Ecrit une paire de registres */
 static void write_pair(u16 index, u16 value) {
-	registers[index * 2] = value & 0xff;
-	registers[index * 2 + 1] = value >> 8 & 0xff;
+	index = (index & 3) << 1;		// modulo 4 paires, fois 2 octets
+	registers[index] = value & 0xff;
+	registers[index + 1] = value >> 8 & 0xff;
 }
 
 /** Décode un registre 8 bits d'un opcode et le lit.
@@ -38,24 +40,20 @@ static u8 read_r(u16 index) {
 	\param index même que pour les opérandes de type r dans Z80.DOC.
 */
 static void write_r(u16 index, u8 value) {
-	switch (index) {
-		case 6:
-			mem_writeb(read_pair(R_HL), value);
-		default:
-			registers[index] = value;
-	}
+	if (index == 6)
+		mem_writeb(read_pair(R_HL), value);
+	else
+		registers[index & 7] = value;
 }
 
 /** Décode une paire de registres (dd) et la lit.
 	\param index même que pour les opérandes de type dd dans Z80.DOC.
 */
 static u16 read_dd(u16 index) {
-	switch (index) {
-		case 3:
-			return SP;
-		default:
-			return read_pair(index);
-	}
+	if (index == 3)
+		return SP;
+	else
+		return read_pair(index);
 }
 
 /** Décode une paire de registres (dd) et l'écrit.
