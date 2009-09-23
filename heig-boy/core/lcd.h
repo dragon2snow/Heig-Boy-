@@ -3,4 +3,7 @@
 
 #include "common.h"
 
+void lcd_tick();
+int lcd_idle_cycles();
+
 #endif

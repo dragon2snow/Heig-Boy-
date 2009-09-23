@@ -10,6 +10,11 @@
 */
 int emu_load_cart(const char *file_name);
 
+/** Exécute la "power-up sequence" virtuelle de la Game Boy qui initialise le
+	matériel et les registres à des valeurs connues.
+*/
+void emu_init();
+
 /** Exécute l'émulateur durant le temps d'une frame (1/60 de seconde) et
 	retourne ensuite, le laissant dans le même état.
 */

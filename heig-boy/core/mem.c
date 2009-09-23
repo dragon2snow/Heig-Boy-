@@ -1,18 +1,20 @@
 #include "mem.h"
 #include "debug.h"
+#include <string.h>
 
 u8 *mem_rom;
 u8 mem_io[0x80];
-u8 mem_hiram[0x7f];
-u8 mem_vram[0x2000];
-u8 mem_ram[0x2000];
-u8 mem_sram[0x2000];
-u8 mem_oam[0xa0];
+static u8 mem_hiram[0x7f];
+static u8 mem_vram[0x2000];
+static u8 mem_ram[0x2000];
+static u8 mem_sram[0x2000];
+static u8 mem_oam[0xa0];
 
 /** Donne l'accès à un port par son nom documenté. Il n'est pas nécessaire
 	d'utiliser le préfixe REG_*.
-	\note Un poil moche mais améliore beaucoup la lisibilité étant donnée la
-	quantité d'accès aux IO réalisés dans l'application */
+	\note Pas très propre mais améliore beaucoup la lisibilité dans cette
+		partie du code où les accès aux IO sont légion
+*/
 #define PORT(r)		mem_io[REG_##r]
 
 /** Lit depuis un port (IO)
@@ -119,11 +121,34 @@ void mem_writeb(u16 address, u8 value) {
 }
 
 u16 mem_readw(u16 address) {
-	// /!\ Little endian
 	return mem_readb(address) | mem_readb(address + 1) << 8;
 }
 
 void mem_writew(u16 address, u16 value) {
 	mem_writeb(address, value & 0xff);
 	mem_writeb(address + 1, value >> 8 & 0xff);
+}
+
+void mem_init() {
+	// En fait la RAM de la Game Boy contient initialement des données
+	// aléatoires, mais on la mettra à zéro
+	memset(mem_ram, 0, sizeof(mem_ram));
+	memset(mem_vram, 0, sizeof(mem_vram));
+	memset(mem_io, 0, sizeof(mem_io));
+	memset(mem_hiram, 0, sizeof(mem_hiram));
+	memset(mem_oam, 0, sizeof(mem_oam));
+	memset(mem_sram, 0, sizeof(mem_sram));
+	// Initialise les registres ayant des valeurs connues différentes de zéro
+	PORT(NR10) = 0x80;
+	PORT(NR11) = PORT(NR14) = PORT(NR24) = PORT(NR33) = PORT(NR44) = 0xBF;
+	PORT(NR12) = 0xF3;
+	PORT(NR21) = 0x3F;
+	PORT(NR30) = 0x7F;
+	PORT(NR31) = PORT(NR41) = PORT(OBP0) = PORT(OBP1) = 0xFF;
+	PORT(NR32) = 0x9F;
+	PORT(NR50) = 0x77;
+	PORT(NR51) = 0xF3;
+	PORT(NR52) = 0xF1;
+	PORT(LCDC) = 0x91;
+	PORT(BGP) = 0xFC;
 }

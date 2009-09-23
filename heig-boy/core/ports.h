@@ -49,7 +49,11 @@ enum {
 	REG_SCX,				// Scroll X
 	REG_LY,					// Ligne du balayage LCD
 	REG_LYC,				// LY compare (déclenche une IRQ)
-	REG_WY = 0x4a,			// Fenêtre Y
+	REG_DMA,				// [W] DMA Transfer and Start Address
+	REG_BGP,				// BG Palette Data (DMG only)
+	REG_OBP0,				// Object Palette 0 Data (DMG only)
+	REG_OBP1,				// Object Palette 0 Data (DMG only)
+	REG_WY,					// Fenêtre Y
 	REG_WX,					// Fenêtre X
 };
 
