@@ -42,13 +42,14 @@
 				Name="VCCLCompilerTool"
 				Optimization="0"
 				AdditionalIncludeDirectories="core;win32"
-				PreprocessorDefinitions="WIN32;_DEBUG;_CONSOLE"
+				PreprocessorDefinitions="WIN32;_DEBUG;_CONSOLE;_CRT_SECURE_NO_WARNINGS"
 				MinimalRebuild="true"
 				BasicRuntimeChecks="3"
 				RuntimeLibrary="3"
 				UsePrecompiledHeader="0"
 				WarningLevel="3"
 				DebugInformationFormat="4"
+				CompileAs="1"
 			/>
 			<Tool
 				Name="VCManagedResourceCompilerTool"
@@ -179,6 +180,10 @@
 					>
 				</File>
 				<File
+					RelativePath=".\core\debug.c"
+					>
+				</File>
+				<File
 					RelativePath=".\core\emu.c"
 					>
 				</File>
@@ -199,7 +204,7 @@
 					>
 				</File>
 				<File
-					RelativePath=".\win32\win32.c"
+					RelativePath=".\win32\os_specific.c"
 					>
 				</File>
 			</Filter>
@@ -221,6 +226,10 @@
 					>
 				</File>
 				<File
+					RelativePath=".\core\debug.h"
+					>
+				</File>
+				<File
 					RelativePath=".\core\emu.h"
 					>
 				</File>
@@ -232,12 +241,16 @@
 					RelativePath=".\core\mem.h"
 					>
 				</File>
+				<File
+					RelativePath=".\core\ports.h"
+					>
+				</File>
 			</Filter>
 			<Filter
 				Name="win32"
 				>
 				<File
-					RelativePath=".\win32\win32.h"
+					RelativePath=".\win32\os_specific.h"
 					>
 				</File>
 			</Filter>

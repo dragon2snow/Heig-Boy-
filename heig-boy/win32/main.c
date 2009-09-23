@@ -18,7 +18,7 @@ int main(int argc, char *argv[]) {
    glutInit(&argc, argv);
    glutInitDisplayMode(GLUT_RGB | GLUT_DOUBLE);
    glutInitWindowSize(SCREEN_WIDTH, SCREEN_HEIGHT);
-   glutCreateWindow("Heig-boy");
+   glutCreateWindow("Heig-boy - testprog.gb");
    glutDisplayFunc(display);
    glutMainLoop();
 }

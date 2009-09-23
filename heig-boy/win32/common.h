@@ -2,8 +2,9 @@
 #define COMMON_H
 
 /** Types */
-typedef unsigned char byte;
-typedef signed short word;
-typedef unsigned short uword;
+typedef unsigned char u8;
+typedef unsigned short u16;
+typedef signed char s8;
+typedef signed short s16;
 
 #endif
