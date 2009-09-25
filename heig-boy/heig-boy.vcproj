@@ -181,7 +181,7 @@
 					>
 				</File>
 				<File
-					RelativePath=".\dasm.c"
+					RelativePath=".\core\dasm.c"
 					>
 				</File>
 				<File

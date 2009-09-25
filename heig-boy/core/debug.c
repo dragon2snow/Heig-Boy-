@@ -1,6 +1,7 @@
 #include "debug.h"
 #include <stdio.h>
-#include <stdarg.h>
+#include <stdarg.h>		// va_arg
+#include <stdlib.h>		// pause
 #include "os_specific.h"
 
 static void debug(int col, const char *prefix, const char *fmt, va_list ap) {
@@ -27,4 +28,5 @@ void dbg_error(const char *fmt, ...) {
 	va_start(ap, fmt);
 	debug(COL_RED, "Error", fmt, ap);
 	va_end(ap);
+	system("pause");
 }
