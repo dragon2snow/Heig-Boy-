@@ -13,4 +13,6 @@ typedef signed char s8;
 typedef signed short s16;
 typedef signed int s32;
 
+typedef enum {false=0, true} bool;
+
 #endif

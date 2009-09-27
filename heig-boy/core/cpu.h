@@ -134,5 +134,7 @@ int cpu_exec_instruction();
 		Game Boy) requis pour l'exécution de l'instruction
 */
 void cpu_disassemble(u16 address, char *name, int *length, int *cycles);
+/** Affiche une instruction (formatée) */
+void cpu_print_instruction(u16 address);
 
 #endif

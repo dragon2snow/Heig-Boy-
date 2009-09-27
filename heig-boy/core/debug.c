@@ -9,6 +9,7 @@ static void debug(int col, const char *prefix, const char *fmt, va_list ap) {
     vsprintf(buf, fmt, ap);
 	set_text_color(col);
 	printf("%s: %s\n", prefix, buf);
+	set_text_color(COL_NORMAL);
 }
 
 void dbg_info(const char *fmt, ...) {

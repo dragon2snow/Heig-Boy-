@@ -8,7 +8,7 @@ static u16 SP, PC;
 // Index des registres dans le tableau (simples & paires) 
 enum {R_B = 0, R_C, R_D, R_E, R_H, R_L, R_A, R_F};
 enum {R_BC = 0, R_DE, R_HL, R_AF};
-/** Flags (R_F)y
+/** Flags (R_F)
   Bit  Name  Set Clr  Expl.
   7    zf    Z   NZ   Zero Flag
   6    n     -   -    Add/Sub-Flag (BCD)
@@ -61,16 +61,16 @@ static void op_dd_write(u16 index, u16 value);
 static u8 pc_readb();
 /** Lecture du prochain mot (16 bits) pointé par le PC. */
 static u16 pc_readw();
-/** Définit l'état d'un flag.
-	\param flag flag à affecter
-	\param val met le flag à 0 si 0, 1 sinon
-*/
-//static void flag_affect(u8 flag, u8 val);
-/** Ecrit le résultat de l'opération dans l'accumulateur et met à jour les
-	flags Zero ou Carry
+/** Ecrit le résultat de l'opération dans l'accumulateur et met automatiquement
+	à jour les flags Zero ou Carry.
 	\param val résultat (signé, plus grand que 8 bits) de l'opération.
 */
 static void accu_write(int val);
+/** Teste une condition (de type cc) sur les flags.
+	\param operand opérande de type cc (voir Z80.doc) avec le bit 2 à 0
+	\return 0 si la condition est fausse, autre valeur sinon
+*/
+static bool condition_test(u8 operand);
 
 void cpu_init() {
 	write_pair(R_AF, 0x01B0);
@@ -86,6 +86,9 @@ int cpu_exec_instruction() {
 	char temp_name[256];
 	int temp, temp_len;
 	u8 mid_digit = (opcode >> 3) & 7, low_digit = opcode & 7;
+
+	cpu_disassemble(PC - 1, temp_name, &temp, &temp_len);
+	cpu_print_instruction(PC - 1);
 
 	switch (opcode) {
 		case 0x00:		// nop
@@ -130,22 +133,21 @@ int cpu_exec_instruction() {
 		}
 	}
 
-	cpu_disassemble(--PC, temp_name, &temp, &temp_len);
-	dbg_error("unkown instruction @%04x: %s", PC, temp_name);
-	PC += temp_len;
+	dbg_error("unimplemented!");
+	PC += temp_len - 1;
 	return 1;
 }
 
 u16 read_pair(u16 index)
 {
 	index = (index & 3) << 1;		// modulo 4 paires, fois 2 octets
-	return registers[index] | registers[index + 1] << 8;
+	return registers[index + 1] | registers[index] << 8;
 }
 
 void write_pair(u16 index, u16 value) {
 	index = (index & 3) << 1;		// modulo 4 paires, fois 2 octets
-	registers[index] = value & 0xff;
-	registers[index + 1] = value >> 8 & 0xff;
+	registers[index + 1] = value & 0xff;
+	registers[index] = value >> 8 & 0xff;
 }
 
 u8 op_r_read(u16 index) {
@@ -190,18 +192,22 @@ u16 pc_readw() {
 	return r;
 }
 
-/*void flag_affect(u8 flag, u8 val) {
-	flag_clear(flag);
-	if (val)
-		flag_set(val);
-}*/
-
 void accu_write(int val) {
-	flag_clear(F_C);
-	flag_clear(F_Z);
+	flag_clear(F_C | F_Z);
 	if (val == 0)			// Z si résultat nul
 		flag_set(F_Z);
 	if (val & ~0xff)		// C si débordement (bits autres que les 8 du registre)
 		flag_set(F_C);
 	accu = val & 0xff;
+}
+
+bool condition_test(u8 operand) {
+	// Le bit du haut de l'opérande cc contient le flag à tester (Z, C).
+	// Le bit du bas indique si il doit être vrai ou faux (1, 0).
+	const u8 flag_table[2] = {F_Z, F_C};
+	// Teste le bit demandé (result = 1 s'il est mis)
+	u8 result = flag_test(flag_table[(operand & 2) >> 1]) ? 1 : 0;
+	// Si l'état du flag testé correspond au test (bit du bas), la
+	// condition est vérifiée
+	return result == (operand & 1);
 }
