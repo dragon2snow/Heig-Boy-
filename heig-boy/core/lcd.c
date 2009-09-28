@@ -90,17 +90,21 @@ static void bg_render() {
 	}
 }
 
-#include <windows.h>
-static void temp_render_to_screen() {
-	int i;
-	HDC hdc;
-	HWND hwnd = GetForegroundWindow();
-	u32 *pixel = lcd_buffer_line(cur_line);
-	hdc = GetDC(hwnd);
-	for (i = 0; i < 160; i++)
-		SetPixel(hdc, i, cur_line, *pixel++ & 0xffffff);
-	ReleaseDC(hwnd, hdc);
-}
+#ifdef WIN32
+	#include <windows.h>
+	static void temp_render_to_screen() {
+		int i;
+		HDC hdc;
+		HWND hwnd = GetForegroundWindow();
+		u32 *pixel = lcd_buffer_line(cur_line);
+		hdc = GetDC(hwnd);
+		for (i = 0; i < 160; i++)
+			SetPixel(hdc, i, cur_line, *pixel++ & 0xffffff);
+		ReleaseDC(hwnd, hdc);
+	}
+#else
+	static void temp_render_to_screen() {}
+#endif
 
 void lcd_draw_line() {
 	if (!lcd_ctrl.enable)		// LCD désactivé
