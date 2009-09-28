@@ -5,10 +5,10 @@
 u8 *mem_rom;
 u8 mem_io[0x80];
 u8 mem_vram[0x2000];
+u8 mem_oam[0xa0];
 static u8 mem_hiram[0x7f];
 static u8 mem_ram[0x2000];
 static u8 mem_sram[0x2000];
-static u8 mem_oam[0xa0];
 
 /** Lit depuis un port (IO)
 	\param port une des constantes REG_* déclarées dans ports.h, ou une adresse
