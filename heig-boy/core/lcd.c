@@ -98,7 +98,7 @@ void lcd_draw_line() {
 	obj_render(0);
 	bg_render();
 	obj_render(1);
-//	temp_render_to_screen();
+	temp_render_to_screen();
 }
 
 void lcd_begin() {
@@ -172,8 +172,8 @@ void win_render() {
 
 void obj_render(u8 skipped_prio) {
 	obj_t *oam = (obj_t*)mem_oam;	// Liste d'attributs des sprites
-	u8 obj_size = lcd_ctrl.obj_size * 8;
-	u32 *pixel = lcd_buffer_line(cur_line);
+	u8 obj_size = 8 + lcd_ctrl.obj_size * 8;
+	u32 *pixel = lcd_buffer_line(cur_line) - 8;
 	int i;
 	if (!lcd_ctrl.obj_en)			// Comme d'hab, fonction désactivée
 		return;
@@ -183,14 +183,12 @@ void obj_render(u8 skipped_prio) {
 		la plus grosse priorité). Ca ne devrait pas poser trop de souci. */
 	for (i = 39; i >= 0; i--) {
 		// 4 octets par objet, décrivant les attributs
-		u8 y = oam->y - 16 - cur_line;	// ligne courante à dessiner
+		u8 y = cur_line - oam[i].y + 16;	// ligne courante à dessiner
 		// Pas besoin de -8, le buffer a déjà 8 pixels invisibles à gauche
-		u8 x = oam->x;
-		u8 *tile_ptr = mem_vram + 16 * oam->tile;
-		struct obj_attr3_t attr = oam->attr;
+		u8 x = oam[i].x;
+		u8 *tile_ptr = mem_vram + 16 * oam[i].tile;
+		struct obj_attr3_t attr = oam[i].attr;
 		u8 pattern[2];
-		// Avance le pointeur pour le prochain sprite de la liste
-		oam++;
 		if (attr.prio == skipped_prio)	// pas la priorité voulue
 			continue;
 		if (x == 0 || x >= 168)			// invisible
@@ -199,6 +197,7 @@ void obj_render(u8 skipped_prio) {
 			continue;			// comme y est non signé donc on revient à 255
 		if (attr.flip_y)		// retournement vertical
 			y = 7 - y;			// compte les lignes depuis le bas
+		tile_ptr += y * 2;		// plus bas dans le motif
 		if (attr.flip_x)		// Retourne éventuellement le motif
 			flip_tile(pattern, tile_ptr);
 		else
