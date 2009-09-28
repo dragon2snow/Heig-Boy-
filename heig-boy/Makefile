@@ -2,7 +2,7 @@
 TARGET = heig-boy
 CC = gcc
 CFLAGS = -Wall -Ilinux
-LIBS = -lglut
+LIBS = 
 # Y a moyen d'inclure génériquement tout ce qu'il y a dans core et linux, mais je sais plus comment de tête
 OBJS = linux/main.o linux/os_specific.o \
 	core/cpu.o core/dasm.o core/debug.o core/emu.o core/lcd.o \
