@@ -82,7 +82,7 @@ void cpu_init() {
 }
 
 int cpu_exec_instruction() {
-	u16 opcode = pc_readb();
+	u8 opcode = pc_readb();
 	char temp_name[256];
 	int temp, temp_len;
 	// structure d'un opcode
@@ -112,6 +112,14 @@ int cpu_exec_instruction() {
 			PC = mem_readw(SP);
 			SP += 2;
 			return 4;
+		case 0x3e:		// ld A, n
+			accu = pc_readb();
+			return 3;
+		case 0xe0:		// ld (FF00+n),A pas dans le z80
+			mem_writeb(0xff00 + pc_readb(),accu); // TODO verify
+			return 3;
+
+
 	}
 
 	// 01 rrr sss -> ld r, s

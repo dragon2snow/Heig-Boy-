@@ -48,9 +48,9 @@ void emu_do_frame() {
 
 	cheat();
 	while (1) {
-//		elapsed = cpu_exec_instruction() * 4;
-		elapsed = 4;
-		lcd_tick(elapsed);
+		elapsed = cpu_exec_instruction() * 4;
+//		elapsed = 4;
+//		lcd_tick(elapsed);
 	}
 }
 
