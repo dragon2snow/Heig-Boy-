@@ -227,7 +227,7 @@
 				Name="core"
 				>
 				<File
-					RelativePath=".\win32\common.h"
+					RelativePath=".\core\common.h"
 					>
 				</File>
 				<File

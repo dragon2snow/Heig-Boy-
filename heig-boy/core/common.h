@@ -17,4 +17,9 @@ typedef enum {false=0, true} bool;
 
 //#define NULL ((void*)0)
 
+#ifndef WIN32
+	#define min(x, y)		((x) < (y) ? (x) : (y))
+	#define max(x, y)		((x) > (y) ? (x) : (y))
+#endif
+
 #endif
