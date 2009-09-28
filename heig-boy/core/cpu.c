@@ -85,6 +85,9 @@ int cpu_exec_instruction() {
 	u16 opcode = pc_readb();
 	char temp_name[256];
 	int temp, temp_len;
+	// structure d'un opcode
+	// 76 543 210
+	// op op1 op2 ex. ld r, s
 	u8 mid_digit = (opcode >> 3) & 7, low_digit = opcode & 7;
 
 	cpu_disassemble(PC - 1, temp_name, &temp, &temp_len);
