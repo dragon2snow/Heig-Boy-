@@ -14,6 +14,7 @@
 */
 /** Image de la cartouche, allouée dynamiquement */
 extern u8 *mem_rom;
+extern u8 mem_vram[0x2000];
 /** Ports (zone I/O à FF00 utilisée pour configurer les périphériques) */
 extern u8 mem_io[0x80];
 

@@ -4,6 +4,8 @@
 #include "mem.h"
 #include <string.h>
 #include <stdio.h>
+#include <stdlib.h>			// max
+#include "os_specific.h"	// set_text_color
 
 void cpu_disassemble(u16 address, char *name, int *length, int *cycles) {
 	const char *reg_names[8] = {"b", "c", "d", "e", "h", "l", "(hl)", "a"};
@@ -11,6 +13,7 @@ void cpu_disassemble(u16 address, char *name, int *length, int *cycles) {
 	const char *stack_reg_names[8] = {"bc", "de", "hl", "af"};
 	const char *op_table[8] = {"add a,", "adc a,", "sub a,", "sbc a,", "and", "xor", "or", "cp"};
 	const char *conditions[4] = {"nz", "z", "nc", "c"};
+	const char *op_incdec[2] = {"inc", "dec"};
 	u16 opcode = mem_readb(address);
 	// Les opcodes sont vus en octal sous la forme xx yyy zzz où zzz peut par
 	// exemple être un des registres ci-dessus
@@ -20,7 +23,7 @@ void cpu_disassemble(u16 address, char *name, int *length, int *cycles) {
 	strcpy(name, "<unk-inst>");
 	*length = 0, *cycles = 0;
 
-	// Décodage des opcodes communs
+	// Décodage des opcodes sans opérande particulière
 	switch (opcode) {
 		// GMB 8-bit load commands
 		case 0x0a:
@@ -182,88 +185,111 @@ void cpu_disassemble(u16 address, char *name, int *length, int *cycles) {
 			return;
 	}
 
-	// 01 rrr sss -> ld r, s
-	if ((opcode & 0300) == 0100) {
-		sprintf(name, "ld %s, %s", reg_names[mid_digit], reg_names[low_digit]);
-		*length = 1;
-		*cycles = low_digit == 6 ? 2 : 1;		// (hl)
-	}
-	// 00 rrr 110 [nn] -> ld r, n
-	else if ((opcode & 0307) == 0006) {
-		sprintf(name, "ld %s, $%02x", reg_names[mid_digit], mem_readb(address + 1));
-		*length = 2;
-		*cycles = low_digit == 6 ? 3 : 2;		// (hl)
-	}
-	// 00 dd0 001 [nn nn] -> ld dd, nnnn (dd est une paire de registres)
-	else if ((opcode & 0317) == 0001) {
-		sprintf(name, "ld %s, $%04x", pair_names[mid_digit >> 1], mem_readw(address + 1));
-		*length = 3, *cycles = 3;
-	}
-	// 11 qq0 101 -> push qq (qq est une paire de registres)
-	else if ((opcode & 0317) == 0305) {
-		sprintf(name, "push %s", stack_reg_names[mid_digit >> 1]);
-		*length = 1, *cycles = 4;
-	}
-	// 11 qq0 001 -> pop qq (qq est une paire de registres)
-	else if ((opcode & 0317) == 0301) {
-		sprintf(name, "pop %s", stack_reg_names[mid_digit >> 1]);
-		*length = 1, *cycles = 3;
-	}
-	// 10 ooo rrr -> ooo a, r
-	else if ((opcode & 0300) == 0200) {
-		sprintf(name, "%s %s", op_table[mid_digit], reg_names[low_digit]);
-		*length = 1, *cycles = 1;
-	}
-	// 11 ooo 110 [nn] -> ooo nn
-	else if ((opcode & 0307) == 0306) {
-		sprintf(name, "%s $%02x", op_table[mid_digit], mem_readb(address + 1));
-		*length = 2, *cycles = 2;
-	}
-	// 00 rrr 10o -> inc r si o=0, dec r sinon
-	else if ((opcode & 0306) == 0004) {
-		const char *op[2] = {"inc", "dec"};
-		sprintf(name, "%s %s", op[low_digit & 1], reg_names[mid_digit]);
-		*length = 1, *cycles = 1;
-	}
-	// 00 dd1 001 -> add hl, dd
-	else if ((opcode & 0317) == 0011) {
-		sprintf(name, "add hl, %s", pair_names[mid_digit >> 1]);
-		*length = 1, *cycles = 2;
-	}
-	// 00 ddo 011 -> inc dd si o=0, dec dd sinon
-	else if ((opcode & 0307) == 0003) {
-		const char *op[2] = {"inc", "dec"};
-		sprintf(name, "%s %s", op[mid_digit & 1], pair_names[mid_digit >> 1]);
-		*length = 1, *cycles = 2;
-	}
-	// PAS SUR!! 11 0cc 010 [nn nn] -> jp cc, nn | le bit 2 de c est ignoré! Comment sur GB?
-	else if ((opcode & 0347) == 0302) {
-		sprintf(name, "jp %s, $%04x", conditions[mid_digit & 3], mem_readw(address + 1));
-		// 4 cycles or 3 if false
-		*length = 3, *cycles = 4;
-	}
-	// 00 1cc 000 [nn] -> jr cc, nn
-	else if ((opcode & 0347) == 0040) {
-		sprintf(name, "jr %s, $%04x", conditions[mid_digit & 3], address + 2 + (s8)mem_readb(address + 1));
-		// 3 cycles or 2 if false
-		*length = 2, *cycles = 3;
-	}
-	// 11 ccc 100 [nn] -> call cc, nn
-	else if ((opcode & 0307) == 0304) {
-		sprintf(name, "call %s, $%04x", conditions[mid_digit & 3], mem_readw(address + 1));
-		// 6 cycles or 3 if false
-		*length = 3, *cycles = 6;
-	}
-	// 11 0cc 000 -> ret cc
-	else if ((opcode & 0347) == 0300) {
-		sprintf(name, "ret %s", conditions[mid_digit & 3]);
-		// 5 cycles or 2 if false
-		*length = 1, *cycles = 5;
-	}
-	// 11 ttt 111 -> rst t
-	else if ((opcode & 0307) == 0307) {
-		sprintf(name, "rst $%02x", mid_digit * 8);
-		*length = 1, *cycles = 4;
+	// L'opération à réaliser dépend principalement des bits du haut
+	switch (upper_digit) {
+		case 1:		// 01 rrr sss -> ld r, s
+			sprintf(name, "ld %s, %s", reg_names[mid_digit], reg_names[low_digit]);
+			*length = 1;
+			*cycles = low_digit == 6 ? 2 : 1;		// (hl)
+			break;
+
+		case 2:		// 10 ooo rrr -> ooo a, r (opération arithmétique)
+			sprintf(name, "%s %s", op_table[mid_digit], reg_names[low_digit]);
+			*length = 1, *cycles = 1;
+			break;
+
+		case 0:		// 00 xxx xxx (l'opération dépend des bits du bas)
+			switch (low_digit) {
+				case 0:
+					// 00 1cc 000 [nn] -> jr cc, nn
+					if ((opcode & 040) == 040) {
+						sprintf(name, "jr %s, $%04x", conditions[mid_digit & 3], address + 2 + (s8)mem_readb(address + 1));
+						// 3 cycles or 2 if false
+						*length = 2, *cycles = 3;
+					}
+					break;
+				case 1:
+					// 00 dd0 001 [nn nn] -> ld dd, nnnn (dd est une paire de registres)
+					if ((opcode & 010) == 0) {
+						sprintf(name, "ld %s, $%04x", pair_names[mid_digit >> 1], mem_readw(address + 1));
+						*length = 3, *cycles = 3;
+					}
+					// 00 dd1 001 -> add hl, dd
+					else {
+						sprintf(name, "add hl, %s", pair_names[mid_digit >> 1]);
+						*length = 1, *cycles = 2;
+					}
+					break;
+				case 3:
+					// 00 ddo 011 -> inc dd si o=0, dec dd sinon
+					sprintf(name, "%s %s", op_incdec[mid_digit & 1], pair_names[mid_digit >> 1]);
+					*length = 1, *cycles = 2;
+					break;
+				case 4:
+				case 5:
+					// 00 rrr 10o -> inc r si o=0, dec r sinon
+					sprintf(name, "%s %s", op_incdec[low_digit & 1], reg_names[mid_digit]);
+					*length = 1, *cycles = 1;
+					break;
+				case 6:
+					// 00 rrr 110 [nn] -> ld r, n
+					sprintf(name, "ld %s, $%02x", reg_names[mid_digit], mem_readb(address + 1));
+					*length = 2;
+					*cycles = low_digit == 6 ? 3 : 2;		// (hl)
+					break;
+			}
+			break;
+
+		case 3:		// 11 xxx xxx (l'opération dépend des bits du bas)
+			switch (low_digit) {
+				case 0:
+					// 11 0cc 000 -> ret cc
+					if ((opcode & 040) == 0) {
+						sprintf(name, "ret %s", conditions[mid_digit & 3]);
+						// 5 cycles or 2 if false
+						*length = 1, *cycles = 5;
+					}
+					break;
+				case 1:
+					// 11 qq0 001 -> pop qq (qq est une paire de registres)
+					if ((opcode & 010) == 0) {
+						sprintf(name, "pop %s", stack_reg_names[mid_digit >> 1]);
+						*length = 1, *cycles = 3;
+					}
+					break;
+				case 2:
+					// PAS SUR!! 11 0cc 010 [nn nn] -> jp cc, nn | le bit 2 de c est ignoré! Comment sur GB?
+					if ((opcode & 040) == 0) {
+						sprintf(name, "jp %s, $%04x", conditions[mid_digit & 3], mem_readw(address + 1));
+						// 4 cycles or 3 if false
+						*length = 3, *cycles = 4;
+					}
+					break;
+				case 4:
+					// 11 ccc 100 [nn] -> call cc, nn
+					sprintf(name, "call %s, $%04x", conditions[mid_digit & 3], mem_readw(address + 1));
+					// 6 cycles or 3 if false
+					*length = 3, *cycles = 6;
+					break;
+				case 5:
+					// 11 qq0 101 -> push qq (qq est une paire de registres)
+					if ((opcode & 010) == 0) {
+						sprintf(name, "push %s", stack_reg_names[mid_digit >> 1]);
+						*length = 1, *cycles = 4;
+					}
+					break;
+				case 6:
+					// 11 ooo 110 [nn] -> ooo nn
+					sprintf(name, "%s $%02x", op_table[mid_digit], mem_readb(address + 1));
+					*length = 2, *cycles = 2;
+					break;
+				case 7:
+					// 11 ttt 111 -> rst t
+					sprintf(name, "rst $%02x", mid_digit * 8);
+					*length = 1, *cycles = 4;
+					break;
+			}
+			break;
 	}
 
 	// Extended opcode -> c'est reparti pour un tour
@@ -288,4 +314,29 @@ void cpu_disassemble(u16 address, char *name, int *length, int *cycles) {
 				*cycles = 2;
 		}
 	}
+}
+
+void cpu_print_instruction(u16 address) {
+	char str[256];
+	int length, cycles, i;
+	cpu_disassemble(address, str, &length, &cycles);
+	printf("%04x   ", address);
+	for (i = 0; i < 3; i++)
+		if (i < max(length, 1))
+			printf("%02x", mem_readb(address++));
+		else
+			printf("  ");
+	if (!length) {		// saute les inconnues pour le moment
+		set_text_color(COL_RED);
+		printf("  %s", str);
+		set_text_color(COL_NORMAL);
+	}
+	else {
+		printf("  %s", str);
+		// Align to 16 chars
+		for (i = strlen(str); i < 16; i++)
+			printf(" ");
+		printf("%i", cycles * 4);
+	}
+	printf("\n");
 }

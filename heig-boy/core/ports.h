@@ -11,50 +11,57 @@
 */
 enum {
 	// Général
-	REG_JOYP = 0x00,		// Joypad
-	REG_SB = 0x01,			// Serial transfer data*
-	REG_SC = 0x02,			// Serial transfer control*
-	REG_DIV = 0x04,			// Timer divider
-	REG_TIMA = 0x05,		// Timer counter
-	REG_TMA = 0x06,			// Timer modulo. Repris quand TIMA dépasse (overflow).
-	REG_TAC = 0x07,			// Timer control
-	REG_IF = 0x0f,			// Interrupt flag
+	R_JOYP = 0x00,		// Joypad
+	R_SB = 0x01,		// Serial transfer data*
+	R_SC = 0x02,		// Serial transfer control*
+	R_DIV = 0x04,		// Timer divider
+	R_TIMA = 0x05,		// Timer counter
+	R_TMA = 0x06,		// Timer modulo. Repris quand TIMA dépasse (overflow).
+	R_TAC = 0x07,		// Timer control
+	R_IF = 0x0f,		// Interrupt flag
 
 	// Audio
-	REG_NR10 = 0x10,		// Channel 1 Sweep
-	REG_NR11,				// Channel 1 Sound length/Wave pattern duty
-	REG_NR12,				// Channel 1 Volume Envelope
-	REG_NR13,				// [W] Channel 1 Frequency lo
-	REG_NR14,				// [!] Channel 1 Frequency hi
-	REG_NR21 = 0x16,		// Channel 2 Sound length/Wave pattern duty
-	REG_NR22,				// Channel 2 Volume Envelope
-	REG_NR23,				// [W] Channel 2 Frequency lo
-	REG_NR24,				// [!] Channel 2 Frequency hi
-	REG_NR30,				// Channel 3 enable
-	REG_NR31,				// Channel 3 sound length
-	REG_NR32,				// Channel 3 output level
-	REG_NR33,				// [W] Channel 3 Frequency lo
-	REG_NR34,				// [!] Channel 3 Frequency hi
-	REG_NR41 = 0x20,		// Channel 4 sound length
-	REG_NR42,				// Channel 4 volume envelope
-	REG_NR43,				// Channel 4 Polynomial Counter
-	REG_NR44,				// Channel 4 Counter select
-	REG_NR50,				// Channel control (master volume and external channel)
-	REG_NR51,				// Selection of Sound output terminal
-	REG_NR52,				// [!] Sound enable
+	R_NR10 = 0x10,		// Channel 1 Sweep
+	R_NR11,				// Channel 1 Sound length/Wave pattern duty
+	R_NR12,				// Channel 1 Volume Envelope
+	R_NR13,				// [W] Channel 1 Frequency lo
+	R_NR14,				// [!] Channel 1 Frequency hi
+	R_NR21 = 0x16,		// Channel 2 Sound length/Wave pattern duty
+	R_NR22,				// Channel 2 Volume Envelope
+	R_NR23,				// [W] Channel 2 Frequency lo
+	R_NR24,				// [!] Channel 2 Frequency hi
+	R_NR30,				// Channel 3 enable
+	R_NR31,				// Channel 3 sound length
+	R_NR32,				// Channel 3 output level
+	R_NR33,				// [W] Channel 3 Frequency lo
+	R_NR34,				// [!] Channel 3 Frequency hi
+	R_NR41 = 0x20,		// Channel 4 sound length
+	R_NR42,				// Channel 4 volume envelope
+	R_NR43,				// Channel 4 Polynomial Counter
+	R_NR44,				// Channel 4 Counter select
+	R_NR50,				// Channel control (master volume and external channel)
+	R_NR51,				// Selection of Sound output terminal
+	R_NR52,				// [!] Sound enable
 	// FF27 - FF2F inutilisé, FF30 - FF3F pattern RAM
-	REG_LCDC = 0x40,		// LCD control
-	REG_STAT,				// LCD status
-	REG_SCY,				// Scroll Y
-	REG_SCX,				// Scroll X
-	REG_LY,					// Ligne du balayage LCD
-	REG_LYC,				// LY compare (déclenche une IRQ)
-	REG_DMA,				// [W] DMA Transfer and Start Address
-	REG_BGP,				// BG Palette Data (DMG only)
-	REG_OBP0,				// Object Palette 0 Data (DMG only)
-	REG_OBP1,				// Object Palette 0 Data (DMG only)
-	REG_WY,					// Fenêtre Y
-	REG_WX,					// Fenêtre X
+	R_LCDC = 0x40,		// LCD control
+	R_STAT,				// LCD status
+	R_SCY,				// Scroll Y
+	R_SCX,				// Scroll X
+	R_LY,				// Ligne du balayage LCD
+	R_LYC,				// LY compare (déclenche une IRQ)
+	R_DMA,				// [W] DMA Transfer and Start Address
+	R_BGP,				// BG Palette Data (DMG only)
+	R_OBP0,				// Object Palette 0 Data (DMG only)
+	R_OBP1,				// Object Palette 0 Data (DMG only)
+	R_WY,				// Fenêtre Y
+	R_WX,				// Fenêtre X
 };
+
+/** Donne l'accès à un port par son nom documenté. Il n'est pas nécessaire
+	d'utiliser le préfixe R_*.
+	\note Pas très propre mais améliore beaucoup la lisibilité car les accès
+		aux IO sont malheureusement légion...
+*/
+#define REG(r)		mem_io[R_##r]
 
 #endif

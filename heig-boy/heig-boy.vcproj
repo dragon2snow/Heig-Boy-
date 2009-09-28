@@ -197,6 +197,10 @@
 					>
 				</File>
 				<File
+					RelativePath=".\core\lcd_status.c"
+					>
+				</File>
+				<File
 					RelativePath=".\core\mem.c"
 					>
 				</File>

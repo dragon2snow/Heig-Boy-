@@ -4,18 +4,11 @@
 
 u8 *mem_rom;
 u8 mem_io[0x80];
+u8 mem_vram[0x2000];
 static u8 mem_hiram[0x7f];
-static u8 mem_vram[0x2000];
 static u8 mem_ram[0x2000];
 static u8 mem_sram[0x2000];
 static u8 mem_oam[0xa0];
-
-/** Donne l'accès à un port par son nom documenté. Il n'est pas nécessaire
-	d'utiliser le préfixe REG_*.
-	\note Pas très propre mais améliore beaucoup la lisibilité dans cette
-		partie du code où les accès aux IO sont légion
-*/
-#define PORT(r)		mem_io[REG_##r]
 
 /** Lit depuis un port (IO)
 	\param port une des constantes REG_* déclarées dans ports.h, ou une adresse
@@ -28,8 +21,8 @@ static u8 mem_io_readb(u16 port) {
 	if (port >= 0x80 && port <= 0xfe)		// Mappée dans la zone des ports
 		return mem_hiram[port - 0xff80];
 	switch (port) {
-		case REG_JOYP:
-			return PORT(JOYP);				// Pas supporté
+		case R_JOYP:
+			return REG(JOYP);				// Pas supporté
 		default:
 			return mem_io[port];
 	}
@@ -40,9 +33,9 @@ static void mem_io_writeb(u16 port, u8 value) {
 		mem_hiram[port - 0xff80] = value;
 	else {
 		switch (port) {
-			case REG_JOYP:
+			case R_JOYP:
 				// Bits du bas read-only
-				PORT(JOYP) = value & 0xf0;
+				REG(JOYP) = value & 0xf0;
 			default:
 				mem_io[port] = value;
 		}
@@ -90,24 +83,27 @@ u8 mem_readb(u16 address) {
 void mem_writeb(u16 address, u8 value) {
 	// Sélection de la zone mémoire
 	switch (address & 0xf000) {
-		case 0x0:
-		case 0x1:
-		case 0x2:
-		case 0x3:
-		case 0x4:
-		case 0x5:
-		case 0x6:
-		case 0x7:	// Ecriture en ROM, viendra au MBC...
+		case 0x0000:
+		case 0x1000:
+		case 0x2000:
+		case 0x3000:
+		case 0x4000:
+		case 0x5000:
+		case 0x6000:
+		case 0x7000:	// Ecriture en ROM, viendra au MBC...
 			break;
-		case 0x8:
-		case 0x9:	// Video RAM (VRAM)
+		case 0x8000:
+		case 0x9000:	// Video RAM (VRAM)
 			mem_vram[address - 0x8000] = value;
-		case 0xa:
-		case 0xb:	// External RAM (SRAM)
+			break;
+		case 0xa000:
+		case 0xb000:	// External RAM (SRAM)
 			mem_sram[address - 0xa000] = value;
-		case 0xc:
-		case 0xd:	// Work RAM (WRAM)
+			break;
+		case 0xc000:
+		case 0xd000:	// Work RAM (WRAM)
 			mem_ram[address - 0xc000] = value;
+			break;
 		default:
 			if (address < 0xfe00)		// E000 - FDFF: miroir C000 - DDFF
 				mem_ram[address - 0xe000] = value;
@@ -117,6 +113,7 @@ void mem_writeb(u16 address, u8 value) {
 				dbg_info("write to unusable memory %04x", address);
 			else						// Ports + HIRAM en fait
 				mem_io_writeb(address - 0xff00, value);
+			break;
 	}
 }
 
@@ -139,16 +136,16 @@ void mem_init() {
 	memset(mem_oam, 0, sizeof(mem_oam));
 	memset(mem_sram, 0, sizeof(mem_sram));
 	// Initialise les registres ayant des valeurs connues différentes de zéro
-	PORT(NR10) = 0x80;
-	PORT(NR11) = PORT(NR14) = PORT(NR24) = PORT(NR33) = PORT(NR44) = 0xBF;
-	PORT(NR12) = 0xF3;
-	PORT(NR21) = 0x3F;
-	PORT(NR30) = 0x7F;
-	PORT(NR31) = PORT(NR41) = PORT(OBP0) = PORT(OBP1) = 0xFF;
-	PORT(NR32) = 0x9F;
-	PORT(NR50) = 0x77;
-	PORT(NR51) = 0xF3;
-	PORT(NR52) = 0xF1;
-	PORT(LCDC) = 0x91;
-	PORT(BGP) = 0xFC;
+	REG(NR10) = 0x80;
+	REG(NR11) = REG(NR14) = REG(NR24) = REG(NR33) = REG(NR44) = 0xBF;
+	REG(NR12) = 0xF3;
+	REG(NR21) = 0x3F;
+	REG(NR30) = 0x7F;
+	REG(NR31) = REG(NR41) = REG(OBP0) = REG(OBP1) = 0xFF;
+	REG(NR32) = 0x9F;
+	REG(NR50) = 0x77;
+	REG(NR51) = 0xF3;
+	REG(NR52) = 0xF1;
+	REG(LCDC) = 0x91;
+	REG(BGP) = 0xFC;
 }

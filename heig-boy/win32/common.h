@@ -15,4 +15,6 @@ typedef signed int s32;
 
 typedef enum {false=0, true} bool;
 
+//#define NULL ((void*)0)
+
 #endif
