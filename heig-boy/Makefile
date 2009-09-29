@@ -1,7 +1,7 @@
 # Petit makefile un peu pourri mais en même temps c'est pas moi le pro de Linux
 TARGET = heig-boy
 CC = gcc
-CFLAGS = -Wall -Ilinux -Icore
+CFLAGS = -Wall -Ilinux -Icore -g
 LIBS = 
 # Y a moyen d'inclure génériquement tout ce qu'il y a dans core et linux, mais je sais plus comment de tête
 OBJS = linux/main.o linux/os_specific.o \

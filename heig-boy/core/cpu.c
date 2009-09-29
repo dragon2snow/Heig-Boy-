@@ -127,14 +127,8 @@ int cpu_exec_instruction() {
 	if ((opcode & 0317) == 01) {
 		// Lit dd
 		temp = mid_digit >> 1;
-
 		// Ecrit la valeur
-		if (temp != 3)
-			op_dd_write(temp,pc_readw());
-		// Ecrit dans SP aulieu de R_AF
-		else
-			SP = pc_readw();
-
+		op_dd_write(temp,pc_readw());
 		return 3;
 	}
 	
