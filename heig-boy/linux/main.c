@@ -1,5 +1,5 @@
 #include <stdio.h>
-#include <GL/glut.h>
+#include "emu.h"
 
 #define SCREEN_WIDTH  160*2
 #define SCREEN_HEIGHT 144*2

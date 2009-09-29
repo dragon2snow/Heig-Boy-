@@ -120,8 +120,24 @@ int cpu_exec_instruction() {
 			return 3;
 
 
+
 	}
 
+	// 00 dd0 001 -> ld dd, nn (16 bit load) TODO verify
+	if ((opcode & 0317) == 01) {
+		// Lit dd
+		temp = mid_digit >> 1;
+
+		// Ecrit la valeur
+		if (temp != 3)
+			op_dd_write(temp,pc_readw());
+		// Ecrit dans SP aulieu de R_AF
+		else
+			SP = pc_readw();
+
+		return 3;
+	}
+	
 	// 01 rrr sss -> ld r, s
 	if ((opcode & 0300) == 0100) {
 		// s -> r
