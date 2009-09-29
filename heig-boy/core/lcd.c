@@ -22,16 +22,6 @@ typedef struct {
 #define cur_line	REG(LY)
 #define scroll_x	REG(SCX)
 #define scroll_y	REG(SCY)
-
-/*
-	Outils
-*/
-// Modulos communs
-#define mod8(x)		((x) & 7)
-#define mod32(x)	((x) & 31)
-#define mod256(x)	((x) & 255)
-// Divisions communes
-#define div8(x)		((x) >> 3)
 // Structure des attributs d'un sprite
 typedef struct {
 	u8 y, x, tile;
@@ -44,13 +34,22 @@ typedef struct {
 	} attr;
 } obj_t;
 
+/*
+	Outils
+*/
+// Modulos communs
+#define mod8(x)		((x) & 7)
+#define mod32(x)	((x) & 31)
+#define mod256(x)	((x) & 255)
+// Divisions communes
+#define div8(x)		((x) >> 3)
 
 /*
 	Buffer écran
 */
 // Temporaire: table de conversion des couleurs (GB <-> 32 bits)
-static const u32 color_table[4] = {0xff101010, 0xff606060, 0xffb0b0b0, 0xffffffff};
-static u8 bg_palette[4] = {0, 1, 2, 3};
+static const u32 color_table[4] = {0xff570000, 0xff8F4D00, 0xffC79A00, 0xffffe700};
+static u8 bg_palette[4], obj_palette[2][4];
 /** Bitmap 32 bits de 256x144 pixels */
 static u32 *lcd_buffer = NULL;
 // Taille d'une ligne de buffer
@@ -87,6 +86,13 @@ static void draw_tile(u32 *pixel, const u8 *palette, const u8 *tile_ptr);
 	\param out destination (2 octets)
 */
 static void flip_tile(u8 *out, const u8 *in);
+/** Décompose un registre palette en une table de valeurs à utiliser pour
+	mapper les niveaux de gris.
+	\param out table de destination de 4 éléments
+	\param reg un registre palette (BGP, OBP...)
+	Par exe
+*/
+static void translate_palette(u8 *out, u8 reg);
 /** Routine super temporaire qui balance le rendu actuel sur l'écran via un
 	méga hack win32-only. (SetPixel sur GetForegroundWindow...) */
 static void temp_render_to_screen();
@@ -94,15 +100,16 @@ static void temp_render_to_screen();
 void lcd_draw_line() {
 	if (!lcd_ctrl.enable)		// LCD désactivé
 		return;
+	// Prépare les palettes
+	translate_palette(bg_palette, REG(BGP));
+	translate_palette(obj_palette[0], REG(OBP0));
+	translate_palette(obj_palette[1], REG(OBP1));
+	// Fait le rendu à proprement parler
 	backdrop_render();
 	obj_render(0);
 	bg_render();
 	obj_render(1);
 	temp_render_to_screen();
-}
-
-void lcd_begin() {
-	memset(lcd_buffer, 0, 256 * 144 * sizeof(u32));
 }
 
 void lcd_draw_init() {
@@ -164,15 +171,18 @@ void win_render() {
 		u8 tile_val = bg_map[mod32(tile_offset_x++)];
 		int tile_no = lcd_ctrl.tile_addr ? (s8)tile_val : (u8)tile_val;
 		u8 *tile_ptr = tile_data + tile_no * 16;
-		// On avance de 8 pixels
+		// Dessin + avancement de 8 pixels
 		draw_tile(pixel + offset_x, bg_palette, tile_ptr);
 		offset_x += 8;
 	}
 }
 
 void obj_render(u8 skipped_prio) {
-	obj_t *oam = (obj_t*)mem_oam;	// Liste d'attributs des sprites
-	u8 obj_size = 8 + lcd_ctrl.obj_size * 8;
+	// Liste d'attributs des sprites
+	obj_t *oam = (obj_t*)mem_oam;
+	// En mode 8x16 (obj_size=1), le dernier bit de la tile est ignoré
+	u8 obj_height = 8 + lcd_ctrl.obj_size * 8;
+	u8 tile_mask = ~lcd_ctrl.obj_size;
 	u32 *pixel = lcd_buffer_line(cur_line) - 8;
 	int i;
 	if (!lcd_ctrl.obj_en)			// Comme d'hab, fonction désactivée
@@ -182,33 +192,34 @@ void obj_render(u8 skipped_prio) {
 		comme sur la Game Boy Color (selon le n° de sprite, le premier ayant
 		la plus grosse priorité). Ca ne devrait pas poser trop de souci. */
 	for (i = 39; i >= 0; i--) {
-		// 4 octets par objet, décrivant les attributs
+		// 4 octets par objet le décrivant (position, motif, etc.)
+		// Note: la GB soustrait 16 à la position y et 8 à la position x
 		u8 y = cur_line - oam[i].y + 16;	// ligne courante à dessiner
 		// Pas besoin de -8, le buffer a déjà 8 pixels invisibles à gauche
 		u8 x = oam[i].x;
-		u8 *tile_ptr = mem_vram + 16 * oam[i].tile;
+		u8 *tile_ptr = mem_vram + 16 * (oam[i].tile & tile_mask);
 		struct obj_attr3_t attr = oam[i].attr;
 		u8 pattern[2];
 		if (attr.prio == skipped_prio)	// pas la priorité voulue
 			continue;
 		if (x == 0 || x >= 168)			// invisible
 			continue;
-		if (y >= obj_size)		// en fait le test devrait avoir || y < 0 mais
+		if (y >= obj_height)	// en fait le test devrait avoir || y < 0 mais
 			continue;			// comme y est non signé donc on revient à 255
 		if (attr.flip_y)		// retournement vertical
-			y = 7 - y;			// compte les lignes depuis le bas
+			y = obj_height - 1 - y;	
 		tile_ptr += y * 2;		// plus bas dans le motif
 		if (attr.flip_x)		// Retourne éventuellement le motif
 			flip_tile(pattern, tile_ptr);
 		else
 			pattern[0] = tile_ptr[0], pattern[1] = tile_ptr[1];
-		// FIXME: tenir compte des OBP
-		draw_tile(pixel + x, bg_palette, pattern);
+		// Finalement, dessine le motif
+		draw_tile(pixel + x, obj_palette[attr.pal_num], pattern);
 	}
 }
 
 void flip_tile(u8 *out, const u8 *in) {
-	// Vitesse critique, d'où déroulage...
+	// Inverse les bits du motif 2x8 bits entrelacé
 	out[0] =
 		 in[0] >> 7         | (in[0] & 0x40) >> 5 |
 		(in[0] & 0x20) >> 3 | (in[0] & 0x10) >> 1 |
@@ -227,11 +238,18 @@ void draw_tile(u32 *pixel, const u8 *palette, const u8 *tile_ptr) {
 	// "foncé", le deuxième le plan "clair". Aucun = blanc, les 2 = noir.
 	u8 pat1 = tile_ptr[0], pat2 = tile_ptr[1];
 	for (j = 0; j < 8; j++) {
-		u8 color = (pat1 & 0x80) >> 6 | (pat2 & 0x80) >> 7;
-		if (color != 0)
+		u8 color = (pat2 & 0x80) >> 6 | (pat1 & 0x80) >> 7;
+		if (color != 0)			// couleur 0 = transparente
 			*pixel = color_table[palette[color]];
 		pixel++, pat1 <<= 1, pat2 <<= 1;
 	}
+}
+
+void translate_palette(u8 *out, u8 reg) {
+	out[0] = reg >> 6 & 3;
+	out[1] = reg >> 4 & 3;
+	out[2] = reg >> 2 & 3;
+	out[3] = reg      & 3;
 }
 
 // KICKME: sooner the better

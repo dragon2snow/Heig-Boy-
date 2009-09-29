@@ -30,7 +30,7 @@ static u8 mem_io_readb(u16 port) {
 
 static void mem_io_writeb(u16 port, u8 value) {
 	if (port >= 0x80 && port <= 0xfe)		// Mappée dans la zone des ports
-		mem_hiram[port - 0xff80] = value;
+		mem_hiram[port - 0x80] = value;
 	else {
 		switch (port) {
 			case R_JOYP:

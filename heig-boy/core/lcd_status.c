@@ -21,7 +21,6 @@ void lcd_init() {
 	next_event = 0;
 	lcd_line = 0;
 	lcd_draw_init();
-	lcd_begin();
 }
 
 void lcd_tick(int elapsed) {
@@ -51,7 +50,6 @@ void lcd_tick(int elapsed) {
 					// On recommence en haut
 					lcd_status.mode = 2;
 					lcd_line = 0;
-					lcd_begin();
 					next_event += 80;
 				}
 				break;
