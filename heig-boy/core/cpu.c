@@ -119,8 +119,6 @@ int cpu_exec_instruction() {
 			mem_writeb(0xff00 + pc_readb(),accu); // TODO verify
 			return 3;
 
-
-
 	}
 
 	// 00 dd0 001 -> ld dd, nn (16 bit load) TODO verify
@@ -131,6 +129,29 @@ int cpu_exec_instruction() {
 		op_dd_write(temp,pc_readw());
 		return 3;
 	}
+
+	// 00 r 100 -> inc r TODO verify
+	if((opcode & 0307) == 04) {
+		// Lit r
+		temp = mid_digit;
+		// incremente r
+		op_r_write(temp,op_r_read(temp)+01);
+
+		// Change le flag Z en fonction de la valeur de r
+		if (op_r_read(temp) == 0)
+			flag_set(F_Z);
+		else
+			flag_clear(F_Z);
+
+		// Met le flag N à zero
+		flag_clear(F_N);
+
+		// Calcul le half carry
+		//if ((accu & 0xf) + (operand & 0xf) >= 0x10)
+			//flag_set(F_H);
+
+		return 1;
+	}
 	
 	// 01 rrr sss -> ld r, s
 	if ((opcode & 0300) == 0100) {
@@ -138,6 +159,7 @@ int cpu_exec_instruction() {
 		op_r_write(mid_digit, op_r_read(low_digit));
 		return low_digit == 6 ? 2 : 1;		// (hl)
 	}
+
 	// 10 ooo rrr -> opération arithmétique a, r
 	else if ((opcode & 0300) == 0200) {
 		u8 operand = op_r_read(low_digit);
