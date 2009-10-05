@@ -2,6 +2,7 @@
 #include "mem.h"
 #include "cpu.h"
 #include "lcd.h"
+#include "sound.h"
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -18,6 +19,7 @@ int emu_load_cart(const char *file_name) {
 		cpu_init();
 		lcd_init();
 		mem_init();
+		sound_init();
 		// Charge le contenu
 		fseek(f, 0, SEEK_SET);
 		fread(mem_rom, size, 1, f);
@@ -28,6 +30,7 @@ int emu_load_cart(const char *file_name) {
 		return -1;
 }
 
+#if 0
 // Précharge un programme pourri non interprété
 #include "ports.h"
 void cheat() {
@@ -49,12 +52,14 @@ void cheat() {
 	mem_writeb(0xFF00 + R_BGP, 0x27);
 	mem_writeb(0xFF00 + R_OBP0, 0x16);
 }
+#endif
 
 #if 1
 	void emu_do_frame() {
 		int elapsed;
 		while (1) {
 			elapsed = cpu_exec_instruction() * 4;
+			lcd_tick(elapsed);
 		}
 	}
 #else

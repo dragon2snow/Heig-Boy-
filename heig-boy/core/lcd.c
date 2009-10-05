@@ -48,7 +48,9 @@ typedef struct {
 	Buffer écran
 */
 // Temporaire: table de conversion des couleurs (GB <-> 32 bits)
-static const u32 color_table[4] = {0xff570000, 0xff8F4D00, 0xffC79A00, 0xffffe700};
+//static const u32 color_table[4] = {0xff00e7ff, 0xff009ac7, 0xff004d8f, 0xff000057};
+static const u32 color_table[4] = {0xffd3de34, 0xffa5b52b, 0xff70831b, 0xff284440};
+//static const u32 color_table[4] = {0xffffffff, 0xffaaaaaa, 0xff555555, 0xff000000};
 static u8 bg_palette[4], obj_palette[2][4];
 /** Bitmap 32 bits de 256x144 pixels */
 static u32 *lcd_buffer = NULL;
@@ -143,7 +145,7 @@ void bg_render() {
 	for (i = 0; i < 21; i++) {
 		// Si le mode est 1, le n° de tile est signé, sinon non signé
 		u8 tile_val = bg_map[mod32(tile_offset_x++)];
-		int tile_no = lcd_ctrl.tile_addr ? (s8)tile_val : (u8)tile_val;
+		int tile_no = lcd_ctrl.tile_addr ? (u8)tile_val : (s8)tile_val;
 		u8 *tile_ptr = tile_data + tile_no * 16;
 		// Dessin du motif
 		draw_tile(pixel, bg_palette, tile_ptr);
@@ -246,24 +248,75 @@ void draw_tile(u32 *pixel, const u8 *palette, const u8 *tile_ptr) {
 }
 
 void translate_palette(u8 *out, u8 reg) {
-	out[0] = reg >> 6 & 3;
-	out[1] = reg >> 4 & 3;
-	out[2] = reg >> 2 & 3;
-	out[3] = reg      & 3;
+	out[3] = reg >> 6 & 3;
+	out[2] = reg >> 4 & 3;
+	out[1] = reg >> 2 & 3;
+	out[0] = reg      & 3;
 }
 
 // KICKME: sooner the better
 #ifdef WIN32
 	#include <windows.h>
+	HDC hdc = NULL;
+	HBITMAP hbm = NULL;
+	HWND hwnd = NULL;
+	unsigned long *pix_data;
+
+	void create(int width, int height) {
+		const int bitDepth = 32;
+		BITMAPINFOHEADER bih;
+		HDC hdcEcran = GetDC(NULL);
+		// Aligned to 4 pixels for simplicity
+		int alignedWidth = (width % 4 == 0 ? width : width + (4 - width % 4));
+
+		memset(&bih, 0, sizeof(bih));
+		bih.biSize = sizeof(bih);
+		bih.biWidth = alignedWidth;
+		bih.biHeight = height;
+		bih.biPlanes = 1;
+		bih.biBitCount = bitDepth;
+		bih.biCompression = BI_RGB;
+
+		hdc = CreateCompatibleDC(hdcEcran);
+		hbm = CreateDIBSection(hdc, (BITMAPINFO*)&bih, DIB_PAL_COLORS, &pix_data, NULL, 0);
+		// Select the new bitmap into the buffer DC.
+		if (hbm && pix_data)
+			SelectObject(hdc, hbm);
+		ReleaseDC(NULL, hdcEcran);
+	}
 	void temp_render_to_screen() {
-		int i;
+		static int frameNo = 0;
+		// Première fois
+		if (!hdc) {
+			create(256, 144);
+			hwnd = GetForegroundWindow();
+		}
+		// Rendu
+		if (cur_line == 0) {
+			HDC hdcDest = GetDC(hwnd);
+			unsigned i, j;
+			for (i = 0; i < 144; i++) {
+				u32 *pixel = lcd_buffer_line(i);
+				for (j = 0; j < 160; j++) {
+//					u32 col = *pixel << 16 | *pixel >> 16 & 0xff | *pixel & 0xff00;
+					pix_data[(143 - i) * 256 + j] = *pixel++;
+//					pixel++;
+				}
+			}
+			StretchBlt(hdcDest, 40, 0, 160*2, 144*2, hdc, 0, 0, 160, 144, SRCCOPY);
+			ReleaseDC(hwnd, hdcDest);
+			if (++frameNo % 2)
+				Sleep(5);
+		}
+
+/*		int i;
 		HDC hdc;
 		HWND hwnd = GetForegroundWindow();
 		u32 *pixel = lcd_buffer_line(cur_line);
 		hdc = GetDC(hwnd);
 		for (i = 0; i < 160; i++)
 			SetPixel(hdc, i, cur_line, *pixel++ & 0xffffff);
-		ReleaseDC(hwnd, hdc);
+		ReleaseDC(hwnd, hdc);*/
 	}
 #else
 	void temp_render_to_screen() {}

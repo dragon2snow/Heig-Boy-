@@ -26,7 +26,8 @@ enum {
 	R_NR12,				// Channel 1 Volume Envelope
 	R_NR13,				// [W] Channel 1 Frequency lo
 	R_NR14,				// [!] Channel 1 Frequency hi
-	R_NR21 = 0x16,		// Channel 2 Sound length/Wave pattern duty
+	R_NR20,				// [!] N'existe pas, pour généraliser channels 1 et 2
+	R_NR21,				// Channel 2 Sound length/Wave pattern duty
 	R_NR22,				// Channel 2 Volume Envelope
 	R_NR23,				// [W] Channel 2 Frequency lo
 	R_NR24,				// [!] Channel 2 Frequency hi

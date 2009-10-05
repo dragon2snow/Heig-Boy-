@@ -62,6 +62,7 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
+				AdditionalDependencies="winmm.lib"
 				LinkIncremental="2"
 				GenerateDebugInformation="true"
 				SubSystem="1"
@@ -177,7 +178,7 @@
 				Name="core"
 				>
 				<File
-					RelativePath=".\core\cpu.c"
+					RelativePath=".\core\cpu-log.c"
 					>
 				</File>
 				<File
@@ -204,6 +205,10 @@
 					RelativePath=".\core\mem.c"
 					>
 				</File>
+				<File
+					RelativePath=".\core\sound.c"
+					>
+				</File>
 			</Filter>
 			<Filter
 				Name="win32"
@@ -216,6 +221,10 @@
 					RelativePath=".\win32\os_specific.c"
 					>
 				</File>
+				<Filter
+					Name="test"
+					>
+				</Filter>
 			</Filter>
 		</Filter>
 		<Filter
@@ -252,6 +261,10 @@
 				</File>
 				<File
 					RelativePath=".\core\ports.h"
+					>
+				</File>
+				<File
+					RelativePath=".\core\sound.h"
 					>
 				</File>
 			</Filter>

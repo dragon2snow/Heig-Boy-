@@ -1,5 +1,6 @@
 #include "mem.h"
 #include "debug.h"
+#include "sound.h"
 #include <string.h>
 
 u8 *mem_rom;
@@ -19,7 +20,9 @@ static u8 mem_sram[0x2000];
 */
 static u8 mem_io_readb(u16 port) {
 	if (port >= 0x80 && port <= 0xfe)		// Mappée dans la zone des ports
-		return mem_hiram[port - 0xff80];
+		return mem_hiram[port - 0x80];
+	else if (port >= 0x10 && port < 0x40)	// Son
+		return sound_readb(port);
 	switch (port) {
 		case R_JOYP:
 			return REG(JOYP);				// Pas supporté
@@ -31,13 +34,17 @@ static u8 mem_io_readb(u16 port) {
 static void mem_io_writeb(u16 port, u8 value) {
 	if (port >= 0x80 && port <= 0xfe)		// Mappée dans la zone des ports
 		mem_hiram[port - 0x80] = value;
+	else if (port >= 0x10 && port < 0x40)	// Son
+		sound_writeb(port, value);
 	else {
 		switch (port) {
 			case R_JOYP:
 				// Bits du bas read-only
 				REG(JOYP) = value & 0xf0;
+				break;
 			default:
 				mem_io[port] = value;
+				break;
 		}
 	}
 }
