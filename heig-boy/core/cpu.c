@@ -130,6 +130,13 @@ int cpu_exec_instruction() {
 			write_pair(R_HL,read_pair(R_HL)+1);
 			return 2;
 		}
+		case 0x12:		// ld (de),a
+			write_pair(read_pair(R_DE),accu);
+			return 2;
+		case 0x13:		// inc de
+			write_pair(R_DE,read_pair(R_DE)+1);
+			return 2;
+			
 	}
 
 	// 00 dd0 001 -> ld dd, nn (16 bit load) TODO verify
