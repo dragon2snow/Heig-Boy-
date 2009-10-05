@@ -83,6 +83,7 @@ void cpu_init() {
 
 int cpu_exec_instruction() {
 	u8 opcode = pc_readb();
+	printf("opcode: %x\n",opcode);
 	char temp_name[256];
 	int temp, temp_len;
 	// structure d'un opcode
@@ -118,7 +119,15 @@ int cpu_exec_instruction() {
 		case 0xe0:		// ld (FF00+n),A pas dans le z80
 			mem_writeb(0xff00 + pc_readb(),accu); // TODO verify
 			return 3;
-
+		case 0x18:		// JR nn
+			PC = PC + (s8)pc_readb();
+			return 3;
+		case 0x2a:
+		{		// ldi a,(hl) -> ld (hl),nn en z80
+			accu = mem_readb(read_pair(R_HL));
+			write_pair(R_HL,read_pair(R_HL)+1);
+			return 2;
+		}
 	}
 
 	// 00 dd0 001 -> ld dd, nn (16 bit load) TODO verify
@@ -134,6 +143,10 @@ int cpu_exec_instruction() {
 	if((opcode & 0307) == 04) {
 		// Lit r
 		temp = mid_digit;
+
+		// Sauve l'ancienne valeur pour le half carry
+		u8 temp_calcul = op_r_read(temp);
+
 		// incremente r
 		op_r_write(temp,op_r_read(temp)+01);
 
@@ -147,9 +160,82 @@ int cpu_exec_instruction() {
 		flag_clear(F_N);
 
 		// Calcul le half carry
-		//if ((accu & 0xf) + (operand & 0xf) >= 0x10)
-			//flag_set(F_H);
+		u8 r_val = op_r_read(temp);
+		
+		r_val = r_val >> 4;
+		temp_calcul = temp_calcul >> 4;
 
+		if(temp_calcul == r_val)
+			flag_clear(F_H);
+		else
+			flag_set(F_H);
+		
+		return 1;
+	}
+
+
+	// 00 nz 000 -> jr nz, e
+	if((opcode & 0307) == 00)
+	{
+		// Lit nz
+		temp = mid_digit;
+
+		// Lit e
+		u8 e = pc_readb();
+		
+		switch(temp) {
+			case 0x07:		// si C == 1
+				if(flag_test(F_C))
+					PC = PC + (s8)e;
+				return 3;
+			case 0x06:		// si C == 0
+				if(!flag_test(F_C))
+					PC = PC + (s8)e;
+				return 3;
+			case 0x05:		// si Z == 1
+				if(flag_test(F_Z))
+					PC = PC + (s8)e;
+				return 3;
+			case 0x04:		// si Z == 0
+				if(!flag_test(F_Z))
+					PC = PC + (s8)e;
+				return 3;
+			default:
+				return 2;
+		}		  
+	}
+	
+	// 00 r 101 -> dec r TODO verify, assimilez au inc
+	if((opcode & 0307) == 05) {
+		// Lit r
+		temp = mid_digit;
+
+		// Sauve l'ancienne valeur pour le half carry
+		u8 temp_calcul = op_r_read(temp);
+
+		// incremente r
+		op_r_write(temp,op_r_read(temp)-01);
+
+		// Change le flag Z en fonction de la valeur de r
+		if (op_r_read(temp) == 0)
+			flag_set(F_Z);
+		else
+			flag_clear(F_Z);
+
+		// Met le flag N à un
+		flag_set(F_N);
+
+		// Calcul le half carry
+		u8 r_val = op_r_read(temp);
+		
+		r_val = r_val >> 4;
+		temp_calcul = temp_calcul >> 4;
+
+		if(temp_calcul == r_val)
+			flag_clear(F_H);
+		else
+			flag_set(F_H);
+		
 		return 1;
 	}
 	
@@ -172,7 +258,8 @@ int cpu_exec_instruction() {
 					flag_set(F_H);
 				// Puis l'addition
 				accu_write(accu + operand);
-				return 1;
+		return 1;
+		
 		}
 	}
 
