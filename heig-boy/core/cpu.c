@@ -119,8 +119,11 @@ int cpu_exec_instruction() {
 			mem_writeb(0xff00 + pc_readb(),accu); // TODO verify
 			return 3;
 		case 0x18:		// JR nn
-			PC = PC + (s8)pc_readb();
+		{		
+			s8 saut = (s8)pc_readb();
+			PC = PC + saut;
 			return 3;
+		}
 		case 0x2a:
 		{		// ldi a,(hl) -> ld (hl),nn en z80
 			accu = mem_readb(read_pair(R_HL));
