@@ -61,8 +61,8 @@ typedef struct {
 
 /** Variables utilisées pour le playback de la voluntary wave et du générateur
 	de bruit blanc */
-typedef struct {
-} other_channel_vars_t;
+/*typedef struct {
+} other_channel_vars_t;*/
 
 tone_channel_vars_t tone_ch[2];	// Pour les 2 canaux
 

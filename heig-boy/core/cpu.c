@@ -83,7 +83,6 @@ void cpu_init() {
 
 int cpu_exec_instruction() {
 	u8 opcode = pc_readb();
-	printf("opcode: %x\n",opcode);
 	char temp_name[256];
 	int temp, temp_len;
 	// structure d'un opcode
@@ -141,11 +140,12 @@ int cpu_exec_instruction() {
 
 	// 00 r 100 -> inc r TODO verify
 	if((opcode & 0307) == 04) {
+		u8 temp_calcul, r_val;
 		// Lit r
 		temp = mid_digit;
 
 		// Sauve l'ancienne valeur pour le half carry
-		u8 temp_calcul = op_r_read(temp);
+		temp_calcul = op_r_read(temp);
 
 		// incremente r
 		op_r_write(temp,op_r_read(temp)+01);
@@ -160,7 +160,7 @@ int cpu_exec_instruction() {
 		flag_clear(F_N);
 
 		// Calcul le half carry
-		u8 r_val = op_r_read(temp);
+		r_val = op_r_read(temp);
 		
 		r_val = r_val >> 4;
 		temp_calcul = temp_calcul >> 4;
@@ -177,28 +177,29 @@ int cpu_exec_instruction() {
 	// 00 nz 000 -> jr nz, e
 	if((opcode & 0307) == 00)
 	{
+		s8 e;
 		// Lit nz
 		temp = mid_digit;
 
 		// Lit e
-		u8 e = pc_readb();
+		e = (s8)pc_readb();
 		
 		switch(temp) {
 			case 0x07:		// si C == 1
 				if(flag_test(F_C))
-					PC = PC + (s8)e;
+					PC = PC + e;
 				return 3;
 			case 0x06:		// si C == 0
 				if(!flag_test(F_C))
-					PC = PC + (s8)e;
+					PC = PC + e;
 				return 3;
 			case 0x05:		// si Z == 1
 				if(flag_test(F_Z))
-					PC = PC + (s8)e;
+					PC = PC + e;
 				return 3;
 			case 0x04:		// si Z == 0
 				if(!flag_test(F_Z))
-					PC = PC + (s8)e;
+					PC = PC + e;
 				return 3;
 			default:
 				return 2;
@@ -207,11 +208,12 @@ int cpu_exec_instruction() {
 	
 	// 00 r 101 -> dec r TODO verify, assimilez au inc
 	if((opcode & 0307) == 05) {
+		u8 temp_calcul, r_val;
 		// Lit r
 		temp = mid_digit;
 
 		// Sauve l'ancienne valeur pour le half carry
-		u8 temp_calcul = op_r_read(temp);
+		temp_calcul = op_r_read(temp);
 
 		// incremente r
 		op_r_write(temp,op_r_read(temp)-01);
@@ -226,7 +228,7 @@ int cpu_exec_instruction() {
 		flag_set(F_N);
 
 		// Calcul le half carry
-		u8 r_val = op_r_read(temp);
+		r_val = op_r_read(temp);
 		
 		r_val = r_val >> 4;
 		temp_calcul = temp_calcul >> 4;

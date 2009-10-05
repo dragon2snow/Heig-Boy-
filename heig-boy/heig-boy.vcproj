@@ -178,7 +178,7 @@
 				Name="core"
 				>
 				<File
-					RelativePath=".\core\cpu-log.c"
+					RelativePath=".\core\cpu.c"
 					>
 				</File>
 				<File
