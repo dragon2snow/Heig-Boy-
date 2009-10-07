@@ -182,7 +182,7 @@ static void tone_channel_render(tone_channel_vars_t *vars,
 	   tone_wave_pat) donc la fréquence d'échantillonnage est 8x plus élevée.
 	*/
 	u16 read_freq = tone_channel_read_freq(ch);
-	u16 freq = freq_clamp(8 * 131072 / (2048 - read_freq));
+	u16 freq = freq_clamp(131072 / (2048 - read_freq));
 	// Génère des échantillons 16 bits stéréo tant que nécessaire
 	while (len--) {
 		s16 data = 0;			// Valeur produite
@@ -192,7 +192,7 @@ static void tone_channel_render(tone_channel_vars_t *vars,
 				tone_wave_pat[ch->wave_duty][freq_div(vars->cur_sample) % 8];
 			// Avance le pointeur à l'intérieur du tableau. Avec une fréquence
 			// de SAMPLE_RATE, cur_sample est additionné d'un (en fixed point).
-			vars->cur_sample += freq_mul(freq) / SAMPLE_RATE;
+			vars->cur_sample += 8 * (freq_mul(freq) / SAMPLE_RATE);
 			// Evénement de fin du son?
 			vars->len_ctr++;
 			if (vars->len_ctr == vars->len_time) {
@@ -255,11 +255,9 @@ static void wave_channel_render(wave_channel_vars_t *vars,
 	/* Voyez #tone_channel_render pour plus d'informations. Ici la fréquence
 	   est calculée comme suit:
 	   freq = 65536/(2048-x) Hz
-	   Comme pour le square generator, 1 tick ("Hz") représente le jeu de toute
-	   la pattern RAM, soit 32 samples.
 	*/
-	u16 freq = freq_clamp(32 * 65536 /
-		(2048 - tone_channel_read_freq((tone_channel_t*)ch)));
+	u16 read_freq = tone_channel_read_freq((tone_channel_t*)ch);
+	u16 freq = freq_clamp(65536 / (2048 - read_freq));
 	// Cf. pandocs, registre NR32 (réglage du volume)
 	// Si ch->volume = 0, ch->volume - 1 vaudra -1, et en non signé cela
 	// donnera 0xff (décalage suffisamment grand pour éteindre le son).
@@ -277,7 +275,9 @@ static void wave_channel_render(wave_channel_vars_t *vars,
 				pat &= 0xf;
 			data = BASE_AMPL * pat >> volume;
 			// Le mécanisme ensuite est le même que tone_channel_render
-			vars->cur_sample += freq_mul(freq) / SAMPLE_RATE;
+			// Comme pour le square generator, 1 tick ("Hz") représente le jeu
+			// de toute la pattern RAM, soit 32 samples.
+			vars->cur_sample += 32 * (freq_mul(freq) / SAMPLE_RATE);
 			// Fin du son?
 			if (++vars->len_ctr == vars->len_time && !ch->consecutive)
 				vars->len_ctr = 0;

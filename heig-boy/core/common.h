@@ -12,6 +12,7 @@ typedef unsigned int u32;
 typedef signed char s8;
 typedef signed short s16;
 typedef signed int s32;
+typedef unsigned long long u64;
 
 typedef enum {false=0, true} bool;
 
@@ -20,6 +21,11 @@ typedef enum {false=0, true} bool;
 #ifndef WIN32
 	#define min(x, y)		((x) < (y) ? (x) : (y))
 	#define max(x, y)		((x) > (y) ? (x) : (y))
+#endif
+
+#if _MSC_VER > 1000
+	// Allocation sur la pile
+	#define alloca _alloca
 #endif
 
 #endif

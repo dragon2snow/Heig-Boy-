@@ -30,30 +30,6 @@ int emu_load_cart(const char *file_name) {
 		return -1;
 }
 
-#if 0
-// Précharge un programme pourri non interprété
-#include "ports.h"
-void cheat() {
-	unsigned i;
-	for (i = 0; i < 5 * 16; i++)
-		mem_writeb(0x8000 + i, mem_readb(0x196 + i));
-	mem_writeb(0xff00 + R_SCX, -50);
-	mem_writeb(0xff00 + R_SCY, -50);
-	mem_writeb(0xff00 + R_LCDC, 0xf7);
-	mem_writeb(0x9800, 1);
-	mem_writeb(0x9801, 2);
-	mem_writeb(0x9802, 3);
-	mem_writeb(0x9803, 3);
-	mem_writeb(0x9804, 4);
-	mem_writeb(0xFE00, 61);
-	mem_writeb(0xFE01, 108);
-	mem_writeb(0xFE02, 2);
-	mem_writeb(0xFE03, 0x60);
-	mem_writeb(0xFF00 + R_BGP, 0x27);
-	mem_writeb(0xFF00 + R_OBP0, 0x16);
-}
-#endif
-
 #if 1
 	void emu_do_frame() {
 		int elapsed;

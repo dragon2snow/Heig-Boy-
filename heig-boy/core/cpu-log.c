@@ -12,14 +12,14 @@ typedef struct {
 	unsigned long clock;
 } record_t;
 
-static FILE *log;
+static FILE *log_file;
 static unsigned long cycle_counter;
 static record_t next_record;
 
 void cpu_init() {
-	log = fopen("C:\\log.bin", "rb");
+	log_file = fopen("C:\\log.bin", "rb");
 	cycle_counter = 0;
-	fread(&next_record, sizeof(record_t), 1, log);
+	fread(&next_record, sizeof(record_t), 1, log_file);
 }
 
 int cpu_exec_instruction() {
@@ -27,11 +27,10 @@ int cpu_exec_instruction() {
 	cycle_counter += 16;
 	// L'événement arrive
 	while (cycle_counter >= next_record.clock) {
-//		printf("%x, next @%x", cycle_counter, next_record.clock);
 		mem_writeb(next_record.address, next_record.value);
-//		if (next_record.address == 0xff00 + R_BGP)
+//		if (next_record.address >= 0xff20 && next_record.address <= 0xff23)
 //			printf("Wrote @ %x: %x\n", next_record.address, next_record.value);
-		if (fread(&next_record, sizeof(record_t), 1, log) != 1)
+		if (fread(&next_record, sizeof(record_t), 1, log_file) != 1)
 			printf("EOF");
 	}
 	return 16;

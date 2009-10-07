@@ -1,29 +1,80 @@
-#include <windows.h>
-#include <stdio.h>
 #include "emu.h"
+#include "sound.h"
+#include <windows.h>
+#include <mmsystem.h>
+#include <stdio.h>
+
+#define NB_BUFFERS 3
+#define SAMPLES_PER_BUF 1024
+
+static DWORD WINAPI win32_sound_thread(LPVOID lpParam);
+static HWAVEOUT hWaveOut;
+static s16 buffer[NB_BUFFERS][SAMPLES_PER_BUF][2];	// 2 16-bit stereo buffers
+static s16 final_buffer[SAMPLES_PER_BUF][2];
+static WAVEHDR header[NB_BUFFERS];
 
 int main(int argc, char *argv[]) {
+	DWORD thread_id;
+	HANDLE thread_handle;
+	thread_handle = CreateThread(NULL, 0, win32_sound_thread, NULL, 0, &thread_id);
 	emu_load_cart("testprog.gb");
 	emu_do_frame();
 }
 
-/*#define SCREEN_WIDTH  160*2
-#define SCREEN_HEIGHT 144*2
+static void win32_sound_init() {
+	WAVEFORMATEX wfx;
+	HWND hwnd;
+	WNDCLASSEX wcex;
+	wfx.nSamplesPerSec = 44100;
+	wfx.wBitsPerSample = 16;
+	wfx.nChannels = 2;
+	wfx.cbSize = 0;		// size of _extra_ info
+	wfx.wFormatTag = WAVE_FORMAT_PCM;
+	wfx.nBlockAlign = (wfx.wBitsPerSample >> 3) * wfx.nChannels;
+	wfx.nAvgBytesPerSec = wfx.nBlockAlign * wfx.nSamplesPerSec;
 
-char *pixels;
+	// OS de merde, on est OBLIGÉ de créer une fenêtre pour gérer les
+	// événements -_-
+	ZeroMemory(&wcex, sizeof(wcex));
+	wcex.cbSize = sizeof(WNDCLASSEX); 
+	wcex.lpfnWndProc = (WNDPROC)DefWindowProc;
+	wcex.hInstance = GetModuleHandle(0);
+	wcex.lpszClassName = "fuck";
+	RegisterClassEx(&wcex);
+	hwnd = CreateWindow("fuck", "", 0, CW_USEDEFAULT, 0, 0, 0, NULL, NULL, GetModuleHandle(0), NULL);
 
-void display(void) {
-	glClearColor(0, 0.5, 0, 0);
-	glClear(GL_COLOR_BUFFER_BIT);
-	glFinish();
-	SwapBuffers(wglGetCurrentDC());
+	if (waveOutOpen(&hWaveOut, WAVE_MAPPER, &wfx, (DWORD_PTR)hwnd, 0, CALLBACK_WINDOW) != MMSYSERR_NOERROR) {
+		fprintf(stderr, "unable to open WAVE_MAPPER device\n");
+		return;
+	}
 }
 
-int main(int argc, char *argv[]) {
-   glutInit(&argc, argv);
-   glutInitDisplayMode(GLUT_RGB | GLUT_DOUBLE);
-   glutInitWindowSize(SCREEN_WIDTH, SCREEN_HEIGHT);
-   glutCreateWindow("Heig-boy - testprog.gb");
-   glutDisplayFunc(display);
-   glutMainLoop();
-}*/
+DWORD WINAPI win32_sound_thread(LPVOID lpParam) {
+	unsigned i;
+	MSG msg;
+	memset(buffer, 0, sizeof(buffer));
+	win32_sound_init();
+	while (GetMessage(&msg, NULL, 0, 0)) {
+		switch (msg.message) {
+			case MM_WOM_OPEN:
+				// Prépare les buffers
+				for (i = 0; i < NB_BUFFERS; i++) {
+					memset(&header[i], 0, sizeof(WAVEHDR));
+					header[i].lpData = (LPSTR)buffer[i];
+					header[i].dwBufferLength = sizeof(buffer[i]);
+					waveOutPrepareHeader(hWaveOut, &header[i], sizeof(WAVEHDR));
+					waveOutWrite(hWaveOut, &header[i], sizeof(WAVEHDR));
+				}
+				break;
+			case MM_WOM_DONE:
+			{
+				WAVEHDR *hdr = (WAVEHDR*)msg.lParam;
+//				memcpy(final_buffer, hdr->lpData, sizeof(final_buffer));
+				sound_render((s16*)hdr->lpData, SAMPLES_PER_BUF);
+				waveOutWrite(hWaveOut, hdr, sizeof (WAVEHDR));
+				break;
+			}
+		}
+	}
+	return 0;
+}

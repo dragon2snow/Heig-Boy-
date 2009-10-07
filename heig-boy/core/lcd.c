@@ -110,6 +110,7 @@ void lcd_draw_line() {
 	backdrop_render();
 	obj_render(0);
 	bg_render();
+	win_render();
 	obj_render(1);
 	temp_render_to_screen();
 }
@@ -136,7 +137,7 @@ void bg_render() {
 	u8 *bg_map = mem_vram + (lcd_ctrl.bg_map_addr ? 0x1C00 : 0x1800) +
 		div8(offset_y) * 32;
 	// Buffer écran
-	u32 *pixel = lcd_buffer_line(cur_line) - mod8(8 - scroll_x);
+	u32 *pixel = lcd_buffer_line(cur_line) - mod8(scroll_x);
 	unsigned i;
 	// BG désactivé
 	if (!lcd_ctrl.bg_en)
@@ -155,7 +156,7 @@ void bg_render() {
 
 void win_render() {
 	// Position (transformée dans le repère écran) du premier pixel à traiter
-	unsigned offset_x = REG(WX) - 7, offset_y = cur_line - REG(WY);
+	int offset_x = REG(WX) - 7, offset_y = cur_line - REG(WY);
 	unsigned tile_offset_x = 0;
 	// Calcule l'adresse des objets en mémoire
 	u8 *tile_data = mem_vram + (lcd_ctrl.tile_addr ? 0 : 0x1000) +
@@ -303,9 +304,9 @@ void translate_palette(u8 *out, u8 reg) {
 //					pixel++;
 				}
 			}
-			StretchBlt(hdcDest, 40, 0, 160*2, 144*2, hdc, 0, 0, 160, 144, SRCCOPY);
+			StretchBlt(hdcDest, 160, 0, 160*2, 144*2, hdc, 0, 0, 160, 144, SRCCOPY);
 			ReleaseDC(hwnd, hdcDest);
-			if (++frameNo % 2)
+			if (++frameNo % 2 == 0)
 				Sleep(5);
 		}
 
