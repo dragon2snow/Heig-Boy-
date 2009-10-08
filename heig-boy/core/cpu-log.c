@@ -24,7 +24,7 @@ void cpu_init() {
 
 int cpu_exec_instruction() {
 	// Fait "avancer le temps"
-	cycle_counter += 16;
+	cycle_counter += 4;
 	// L'événement arrive
 	while (cycle_counter >= next_record.clock) {
 		mem_writeb(next_record.address, next_record.value);
@@ -33,5 +33,5 @@ int cpu_exec_instruction() {
 		if (fread(&next_record, sizeof(record_t), 1, log_file) != 1)
 			printf("EOF");
 	}
-	return 16;
+	return 1;
 }

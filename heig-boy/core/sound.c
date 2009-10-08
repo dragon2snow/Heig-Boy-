@@ -38,8 +38,8 @@ typedef struct {
 
 // Configuration de l'onde volontaire (voluntary wave)
 typedef struct {
-	struct {		// 1=disable, 0=playback
-		u8 dummy1: 7, disable: 1;
+	struct {		// 0=disable, 1=playback
+		u8 dummy1: 7, enable: 1;
 	};
 	u8 length;
 	struct {		// 0=off, 1=100% (0dB), 2=50% (-3dB), 3=25% (-6dB)
@@ -262,6 +262,8 @@ static void wave_channel_render(wave_channel_vars_t *vars,
 	// Si ch->volume = 0, ch->volume - 1 vaudra -1, et en non signé cela
 	// donnera 0xff (décalage suffisamment grand pour éteindre le son).
 	u8 volume = (ch->volume - 1) & 0xff;
+	if (!ch->enable)
+		volume = 0xff;
 	// Phase de génération
 	while (len--) {
 		s16 data = 0;			// Valeur produite
@@ -405,16 +407,16 @@ void sound_render(s16 *buf, unsigned len) {
 	noise_channel_render(&noise_ch, mix_buf4, len);
 	// Mixe les canaux sonores
 	while (len--) {
-		*buf++ =			// Canal gauche
-			(*mix_buf1 & mask11) +
-			(*mix_buf2 & mask12) +
-			(*mix_buf3 & mask13) +
-			(*mix_buf4 & mask14);
 		*buf++ =			// Canal droit
-			(*mix_buf1++ & mask21) +
-			(*mix_buf2++ & mask22) +
-			(*mix_buf3++ & mask23) +
-			(*mix_buf4++ & mask24);
+			(*mix_buf1 & mask21) +
+			(*mix_buf2 & mask22) +
+			(*mix_buf3 & mask23) +
+			(*mix_buf4 & mask24);
+		*buf++ =			// Canal gauche
+			(*mix_buf1++ & mask11) +
+			(*mix_buf2++ & mask12) +
+			(*mix_buf3++ & mask13) +
+			(*mix_buf4++ & mask14);
 	}
 }
 
@@ -457,9 +459,10 @@ void sound_writeb(u16 port, u8 value) {
 			case 3:
 			case 4:				// nrX3/4: fréquence
 				// Reprend le son au début
-				vars->len_ctr = 0;
+//				vars->len_ctr = 0;
 				// Recommence le son
 				if (channel->restart) {
+					vars->len_ctr = 0;
 					vars->cur_sample = 0;
 					vars->cur_volume = channel->vol_initial;
 					vars->vol_ctr = vars->sweep_ctr = 0;
@@ -479,11 +482,12 @@ void sound_writeb(u16 port, u8 value) {
 		case R_NR33:
 		case R_NR34:		// PCM fréquence
 			// Reprend le son au début
-			wave_ch.len_ctr = 0;
+//			wave_ch.len_ctr = 0;
 			break;
 		case R_NR41:		// longueur du bruit
 			// Sound Length = (64-t1)*(1/256) seconds
 			noise_ch.len_time = SAMPLE_RATE * (64 - ch4.sound_length) / 256;
+			noise_ch.len_ctr = 0;
 			break;
 		case R_NR42:		// volume envelope
 			// 1 step = n*(1/64) seconds
@@ -492,8 +496,9 @@ void sound_writeb(u16 port, u8 value) {
 			noise_ch.cur_volume = ch4.vol_initial;
 			break;
 		case R_NR44:		// redémarrage du son
-			noise_ch.len_ctr = 0;
+//			noise_ch.len_ctr = 0;
 			if (ch4.restart) {
+				noise_ch.len_ctr = 0;
 				noise_ch.cur_sample = 0;
 				noise_ch.cur_volume = ch4.vol_initial;
 				noise_ch.vol_ctr = 0;

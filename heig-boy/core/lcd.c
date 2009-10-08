@@ -262,6 +262,7 @@ void translate_palette(u8 *out, u8 reg) {
 	HBITMAP hbm = NULL;
 	HWND hwnd = NULL;
 	unsigned long *pix_data;
+	__int64 freq, last_val;
 
 	void create(int width, int height) {
 		const int bitDepth = 32;
@@ -291,23 +292,27 @@ void translate_palette(u8 *out, u8 reg) {
 		if (!hdc) {
 			create(256, 144);
 			hwnd = GetForegroundWindow();
+			QueryPerformanceFrequency((LARGE_INTEGER*)&freq);
+			QueryPerformanceCounter((LARGE_INTEGER*)&last_val);
 		}
 		// Rendu
 		if (cur_line == 0) {
 			HDC hdcDest = GetDC(hwnd);
 			unsigned i, j;
+			__int64 val;
+
 			for (i = 0; i < 144; i++) {
 				u32 *pixel = lcd_buffer_line(i);
-				for (j = 0; j < 160; j++) {
-//					u32 col = *pixel << 16 | *pixel >> 16 & 0xff | *pixel & 0xff00;
+				for (j = 0; j < 160; j++)
 					pix_data[(143 - i) * 256 + j] = *pixel++;
-//					pixel++;
-				}
 			}
 			StretchBlt(hdcDest, 160, 0, 160*2, 144*2, hdc, 0, 0, 160, 144, SRCCOPY);
 			ReleaseDC(hwnd, hdcDest);
-			if (++frameNo % 2 == 0)
-				Sleep(5);
+
+			// Attend que 16 millisecondes se soient écoulées
+			do	QueryPerformanceCounter((LARGE_INTEGER*)&val);
+			while ((double)(val - last_val) / freq < 0.016666);
+			last_val += (__int64)(0.016666 * freq);
 		}
 
 /*		int i;

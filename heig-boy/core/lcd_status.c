@@ -52,6 +52,8 @@ void lcd_tick(int elapsed) {
 					lcd_line = 0;
 					next_event += 80;
 				}
+				else
+					next_event += 456;
 				break;
 			case 2:		// lecture de l'OAM
 				lcd_status.mode = 3;

@@ -4,13 +4,12 @@
 #include <mmsystem.h>
 #include <stdio.h>
 
-#define NB_BUFFERS 3
-#define SAMPLES_PER_BUF 1024
+#define NB_BUFFERS 8
+#define SAMPLES_PER_BUF 256
 
 static DWORD WINAPI win32_sound_thread(LPVOID lpParam);
 static HWAVEOUT hWaveOut;
 static s16 buffer[NB_BUFFERS][SAMPLES_PER_BUF][2];	// 2 16-bit stereo buffers
-static s16 final_buffer[SAMPLES_PER_BUF][2];
 static WAVEHDR header[NB_BUFFERS];
 
 int main(int argc, char *argv[]) {
@@ -51,6 +50,7 @@ static void win32_sound_init() {
 
 DWORD WINAPI win32_sound_thread(LPVOID lpParam) {
 	unsigned i;
+//	FILE *f = fopen("C:\\out.raw", "wb");
 	MSG msg;
 	memset(buffer, 0, sizeof(buffer));
 	win32_sound_init();
@@ -69,8 +69,8 @@ DWORD WINAPI win32_sound_thread(LPVOID lpParam) {
 			case MM_WOM_DONE:
 			{
 				WAVEHDR *hdr = (WAVEHDR*)msg.lParam;
-//				memcpy(final_buffer, hdr->lpData, sizeof(final_buffer));
 				sound_render((s16*)hdr->lpData, SAMPLES_PER_BUF);
+//				fwrite(hdr->lpData, 4, SAMPLES_PER_BUF, f);
 				waveOutWrite(hWaveOut, hdr, sizeof (WAVEHDR));
 				break;
 			}
