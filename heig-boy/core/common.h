@@ -17,6 +17,7 @@ typedef unsigned long long u64;
 typedef enum {false=0, true} bool;
 
 //#define NULL ((void*)0)
+#define BIT(x)		(1 << (x))
 
 #ifndef WIN32
 	#define min(x, y)		((x) < (y) ? (x) : (y))

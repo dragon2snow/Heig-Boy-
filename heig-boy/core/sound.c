@@ -8,8 +8,7 @@
 #include <stdio.h>		// temp
 
 #define SAMPLE_RATE 44100		// samples per second
-//#define BASE_AMPL   1000		// base amplitude
-#define BASE_AMPL   600			// base amplitude
+#define BASE_AMPL   512			// base amplitude
 
 // Configuration des canaux quadrangulaires (1 et 2)
 typedef struct {
@@ -75,6 +74,7 @@ typedef struct {
 	};
 } noise_channel_t;
 
+// Configuration générale des canaux sonores
 typedef struct {
 	struct {		// NR50 (volume & vin pas émulé)
 		u8 so1_vol: 3, so1_vin: 1;
@@ -219,10 +219,11 @@ static void tone_channel_render(tone_channel_vars_t *vars,
 				vars->sweep_ctr++;
 				if (vars->sweep_ctr > vars->sweep_time) {
 					// Formule à chaque shift: X(t) = X(t-1) +/- X(t-1)/2^n
-					if (ch->sweep_op)		// soustraction
-						read_freq -= read_freq / (1 << ch->sweep_shift);
-					else					// addition
-						read_freq += read_freq / (1 << ch->sweep_shift);
+					u16 amount = read_freq / (1 << ch->sweep_shift);
+					if (ch->sweep_op) 	// soustraction
+						read_freq -= min(read_freq, amount);
+					else 				// addition
+						read_freq += min(2047 - read_freq, amount);
 					// Met à jour la fréquence et la recalcule
 					tone_channel_write_freq(ch, read_freq);
 					freq = 131072 / (2048 - read_freq);
@@ -263,7 +264,7 @@ static void wave_channel_render(wave_channel_vars_t *vars,
 	// donnera 0xff (décalage suffisamment grand pour éteindre le son).
 	u8 volume = (ch->volume - 1) & 0xff;
 	if (!ch->enable)
-		volume = 0xff;
+		volume = 255;
 	// Phase de génération
 	while (len--) {
 		s16 data = 0;			// Valeur produite
@@ -374,8 +375,6 @@ static void noise_channel_init(noise_channel_vars_t *vars, noise_channel_t *chan
 	u8 data = 0;
 	memset(vars, 0, sizeof(*vars));
 	vars->channel = channel;
-	// FIXME
-	vars->len_time = SAMPLE_RATE / 256;
 	// Génère des données aléatoires pour le son
 	srand(100);			// donne bien selon les tests
 	for (i = 0; i < 32768; i++) {
@@ -407,16 +406,18 @@ void sound_render(s16 *buf, unsigned len) {
 	noise_channel_render(&noise_ch, mix_buf4, len);
 	// Mixe les canaux sonores
 	while (len--) {
-		*buf++ =			// Canal droit
-			(*mix_buf1 & mask21) +
-			(*mix_buf2 & mask22) +
-			(*mix_buf3 & mask23) +
-			(*mix_buf4 & mask24);
-		*buf++ =			// Canal gauche
-			(*mix_buf1++ & mask11) +
-			(*mix_buf2++ & mask12) +
-			(*mix_buf3++ & mask13) +
-			(*mix_buf4++ & mask14);
+		s32 left =		// Canal gauche
+			(*mix_buf1 & mask11) +
+			(*mix_buf2 & mask12) +
+			(*mix_buf3 & mask13) +
+			(*mix_buf4 & mask14);
+		s32 right =		// Canal droit
+			(*mix_buf1++ & mask21) +
+			(*mix_buf2++ & mask22) +
+			(*mix_buf3++ & mask23) +
+			(*mix_buf4++ & mask24);
+		*buf++ = min(32767, max(-32768, right));
+		*buf++ = min(32767, max(-32768, left));
 	}
 }
 
@@ -427,12 +428,15 @@ void sound_init() {
 	noise_channel_init(&noise_ch, &ch4);
 }
 
-u8 sound_readb(u16 port) {
+u8 sound_read(u16 port) {
 	// TODO
-	return 0xff;
+	switch (port) {
+		default:
+			return 0xff;
+	}
 }
 
-void sound_writeb(u16 port, u8 value) {
+void sound_write(u16 port, u8 value) {
 	mem_io[port] = value;
 	// Généralisation pour le générateur de fréquence (tone)
 	if (port >= R_NR10 && port < R_NR30 && port != R_NR20) {
@@ -458,8 +462,6 @@ void sound_writeb(u16 port, u8 value) {
 				break;
 			case 3:
 			case 4:				// nrX3/4: fréquence
-				// Reprend le son au début
-//				vars->len_ctr = 0;
 				// Recommence le son
 				if (channel->restart) {
 					vars->len_ctr = 0;
@@ -474,15 +476,10 @@ void sound_writeb(u16 port, u8 value) {
 	}
 
 	switch (port) {
-		case R_NR31:		// PCM volume
+		case R_NR31:		// PCM length
 			// Sound Length = (256-t1)*(1/256) seconds
 			wave_ch.len_time = SAMPLE_RATE * (256 - ch3.length) / 256;
 			wave_ch.len_ctr = 0;
-			break;
-		case R_NR33:
-		case R_NR34:		// PCM fréquence
-			// Reprend le son au début
-//			wave_ch.len_ctr = 0;
 			break;
 		case R_NR41:		// longueur du bruit
 			// Sound Length = (64-t1)*(1/256) seconds
@@ -496,7 +493,6 @@ void sound_writeb(u16 port, u8 value) {
 			noise_ch.cur_volume = ch4.vol_initial;
 			break;
 		case R_NR44:		// redémarrage du son
-//			noise_ch.len_ctr = 0;
 			if (ch4.restart) {
 				noise_ch.len_ctr = 0;
 				noise_ch.cur_sample = 0;

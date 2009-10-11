@@ -2,6 +2,7 @@
 	\brief Gestion des transitions d'état du LCD et de la génération des IRQ.
 */
 #include "lcd.h"
+#include "cpu.h"
 #include "ports.h"
 
 // Contenu du registre STAT
@@ -36,6 +37,7 @@ void lcd_tick(int elapsed) {
 				// Prochaine ligne
 				if (++lcd_line == 144) {
 					// Balayage au fond du LCD => commencement de la vblank
+					cpu_trigger_irq(INT_VBLANK);
 					lcd_status.mode = 1;
 					next_event += 456;
 				}
@@ -43,6 +45,9 @@ void lcd_tick(int elapsed) {
 					lcd_status.mode = 2;
 					next_event += 80;
 				}
+				// La ligne demandée par l'utilisateur correspond
+				if (lcd_line == REG(LYC))
+					cpu_trigger_irq(INT_STAT);
 				break;
 			case 1:		// vblank
 				// Fin de la vblank? (10 lignes)
@@ -68,4 +73,3 @@ void lcd_tick(int elapsed) {
 	}
 }
 
-int lcd_idle_cycles() { return next_event; }

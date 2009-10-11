@@ -56,6 +56,7 @@ enum {
 	R_OBP1,				// Object Palette 0 Data (DMG only)
 	R_WY,				// Fenêtre Y
 	R_WX,				// Fenêtre X
+	R_IE = 0xff			// Interrupt enable
 };
 
 /** Donne l'accès à un port par son nom documenté. Il n'est pas nécessaire

@@ -3,7 +3,10 @@
 
 #include "common.h"
 
-/** Initialisation du système sonore. */
+/** Initialisation du système sonore.
+	\note Doit être réalisée avant mem_init, qui met les registres dans un état
+	connu (incluant ceux du son).
+*/
 void sound_init();
 /** Produit du son à 44.1 kHz en fonction de l'état actuel des registres de
 	l'APU.
@@ -19,13 +22,13 @@ void sound_render(s16 *buf, unsigned len);
 	\param port n° du port à lire (adresse - $FF00)
 	\return valeur de retour par le bus de données
 */
-u8 sound_readb(u16 port);
+u8 sound_read(u16 port);
 
 /** Réalise une écriture dans la zone I/O réservée à l'APU ($FF10-$FF3F).
-	Voir #sound_readb pour plus d'informations.
+	Voir #sound_read pour plus d'informations.
 	\param port n° du port à lire (adresse - $FF00)
-	\return value valeur à écrire (via le bus de données)
+	\param value valeur à écrire (via le bus de données)
 */
-void sound_writeb(u16 port, u8 value);
+void sound_write(u16 port, u8 value);
 
 #endif

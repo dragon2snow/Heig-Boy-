@@ -100,18 +100,18 @@ static void translate_palette(u8 *out, u8 reg);
 static void temp_render_to_screen();
 
 void lcd_draw_line() {
-	if (!lcd_ctrl.enable)		// LCD désactivé
-		return;
 	// Prépare les palettes
 	translate_palette(bg_palette, REG(BGP));
 	translate_palette(obj_palette[0], REG(OBP0));
 	translate_palette(obj_palette[1], REG(OBP1));
 	// Fait le rendu à proprement parler
 	backdrop_render();
-	obj_render(0);
-	bg_render();
-	win_render();
-	obj_render(1);
+	if (lcd_ctrl.enable) {		// LCD activé
+		obj_render(0);
+		bg_render();
+		win_render();
+		obj_render(1);
+	}
 	temp_render_to_screen();
 }
 

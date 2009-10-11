@@ -13,6 +13,5 @@ void lcd_draw_line();
 	\param elapsed cycles elapsed since the last tick
 */
 void lcd_tick(int elapsed);
-int lcd_idle_cycles();
 
 #endif
