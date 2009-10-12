@@ -81,6 +81,11 @@ void cpu_init() {
 	PC = 0x0100;
 }
 
+void cpu_trigger_irq(cpu_interrupt_t int_no) {
+	// L'interruption sera exécutée dans cpu_exec_instruction
+	REG(IF) |= BIT(int_no);
+}
+
 int cpu_exec_instruction() {
 	u8 opcode = pc_readb();
 	char temp_name[256];
