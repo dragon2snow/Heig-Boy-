@@ -123,7 +123,23 @@ void cpu_init();
 	prochaine instruction.
 	\return le nombre de cycles utilisés par l'instruction
 */
-int cpu_exec_instruction();
+unsigned cpu_exec_instruction();
+
+/** Types d'interruptions possibles. */
+typedef enum {
+	INT_VBLANK = 0,			// période de VBLANK du LCD
+	INT_STAT = 1,			// statut du LCD
+	INT_TIMER = 2,			// ça se comprend tout seul
+	INT_SERIAL = 3,			// pas émulé
+	INT_JOYPAD = 4,			// combinaison de touches
+	INT_LAST = 5
+} cpu_interrupt_t;
+
+/** Déclenche une interruption logicielle, qui va éventuellement s'exécuter sur
+	le CPU si l'utilisateur ne l'a pas masquée.
+	\note le bit correspondant de IF est mis à jour
+*/
+void cpu_trigger_irq(cpu_interrupt_t int_no);
 
 /** Decode (désassemble) une instruction.
 	\param address adresse du bus où lire l'instruction
