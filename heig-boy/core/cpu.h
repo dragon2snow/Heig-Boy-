@@ -127,11 +127,11 @@ unsigned cpu_exec_instruction();
 
 /** Types d'interruptions possibles. */
 typedef enum {
-	INT_VBLANK = 0,			// période de VBLANK du LCD
+	INT_VBLANK = 0,		// période de VBLANK du LCD
 	INT_STAT = 1,			// statut du LCD
 	INT_TIMER = 2,			// ça se comprend tout seul
-	INT_SERIAL = 3,			// pas émulé
-	INT_JOYPAD = 4,			// combinaison de touches
+	INT_SERIAL = 3,		// pas émulé
+	INT_JOYPAD = 4,		// combinaison de touches
 	INT_LAST = 5
 } cpu_interrupt_t;
 

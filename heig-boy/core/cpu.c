@@ -86,7 +86,7 @@ void cpu_trigger_irq(cpu_interrupt_t int_no) {
 	REG(IF) |= BIT(int_no);
 }
 
-int cpu_exec_instruction() {
+unsigned cpu_exec_instruction() {
 	u8 opcode = pc_readb();
 	char temp_name[256];
 	int temp, temp_len;
@@ -97,97 +97,7 @@ int cpu_exec_instruction() {
 
 	cpu_disassemble(PC - 1, temp_name, &temp, &temp_len);
 	cpu_print_instruction(PC - 1);
-
-	switch (opcode) {
-		case 0x00:		// nop
-			// Ne fait rien (but de l'instruction ^^)
-			return 1;
-		case 0xc3:		// jp nn
-			// Saute à l'adresse immédiate
-			PC = pc_readw();
-			return 4;
-		case 0xcd:		// call nn
-			// Appel d'une fonction à une adresse immédiate
-			SP -= 2;			// Pousse PC (adresse de retour) sur la pile
-			mem_writew(SP, PC + 2);
-			PC = pc_readw();	// Et saute à l'adresse immédiate
-			return 6;
-		case 0xc9:		// ret
-			// Lit l'adresse de retour depuis la pile
-			PC = mem_readw(SP);
-			SP += 2;
-			return 4;
-		case 0x3e:		// ld A, n
-			accu = pc_readb();
-			return 3;
-		case 0xe0:		// ld (FF00+n),A pas dans le z80
-			mem_writeb(0xff00 + pc_readb(),accu); // TODO verify
-			return 3;
-		case 0x18:		// JR nn
-		{		
-			s8 saut = (s8)pc_readb();
-			PC = PC + saut;
-			return 3;
-		}
-		case 0x2a:
-		{		// ldi a,(hl) -> ld (hl),nn en z80
-			accu = mem_readb(read_pair(R_HL));
-			write_pair(R_HL,read_pair(R_HL)+1);
-			return 2;
-		}
-		case 0x12:		// ld (de),a
-			write_pair(read_pair(R_DE),accu);
-			return 2;
-		case 0x13:		// inc de
-			write_pair(R_DE,read_pair(R_DE)+1);
-			return 2;
-			
-	}
-
-	// 00 dd0 001 -> ld dd, nn (16 bit load) TODO verify
-	if ((opcode & 0317) == 01) {
-		// Lit dd
-		temp = mid_digit >> 1;
-		// Ecrit la valeur
-		op_dd_write(temp,pc_readw());
-		return 3;
-	}
-
-	// 00 r 100 -> inc r TODO verify
-	if((opcode & 0307) == 04) {
-		u8 temp_calcul, r_val;
-		// Lit r
-		temp = mid_digit;
-
-		// Sauve l'ancienne valeur pour le half carry
-		temp_calcul = op_r_read(temp);
-
-		// incremente r
-		op_r_write(temp,op_r_read(temp)+01);
-
-		// Change le flag Z en fonction de la valeur de r
-		if (op_r_read(temp) == 0)
-			flag_set(F_Z);
-		else
-			flag_clear(F_Z);
-
-		// Met le flag N à zero
-		flag_clear(F_N);
-
-		// Calcul le half carry
-		r_val = op_r_read(temp);
-		
-		r_val = r_val >> 4;
-		temp_calcul = temp_calcul >> 4;
-
-		if(temp_calcul == r_val)
-			flag_clear(F_H);
-		else
-			flag_set(F_H);
-		
-		return 1;
-	}
-
+	
 
 	// 00 nz 000 -> jr nz, e
 	if((opcode & 0307) == 00)
@@ -220,65 +130,364 @@ int cpu_exec_instruction() {
 				return 2;
 		}		  
 	}
+
 	
-	// 00 r 101 -> dec r TODO verify, assimilez au inc
-	if((opcode & 0307) == 05) {
-		u8 temp_calcul, r_val;
-		// Lit r
-		temp = mid_digit;
-
-		// Sauve l'ancienne valeur pour le half carry
-		temp_calcul = op_r_read(temp);
-
-		// incremente r
-		op_r_write(temp,op_r_read(temp)-01);
-
-		// Change le flag Z en fonction de la valeur de r
-		if (op_r_read(temp) == 0)
-			flag_set(F_Z);
-		else
-			flag_clear(F_Z);
-
-		// Met le flag N à un
-		flag_set(F_N);
-
-		// Calcul le half carry
-		r_val = op_r_read(temp);
-		
-		r_val = r_val >> 4;
-		temp_calcul = temp_calcul >> 4;
-
-		if(temp_calcul == r_val)
-			flag_clear(F_H);
-		else
-			flag_set(F_H);
-		
-		return 1;
-	}
 	
-	// 01 rrr sss -> ld r, s
-	if ((opcode & 0300) == 0100) {
-		// s -> r
-		op_r_write(mid_digit, op_r_read(low_digit));
-		return low_digit == 6 ? 2 : 1;		// (hl)
-	}
-
-	// 10 ooo rrr -> opération arithmétique a, r
-	else if ((opcode & 0300) == 0200) {
-		u8 operand = op_r_read(low_digit);
-		// TODO finir...
-		switch (mid_digit) {
-			case 0:		// add
-				flags = 0;		// Cette instruction affecte tous les flags
-				// Calcule le half-carry (carry sur les 4 bits du bas)
-				if ((accu & 0xf) + (operand & 0xf) >= 0x10)
-					flag_set(F_H);
-				// Puis l'addition
-				accu_write(accu + operand);
-		return 1;
-		
+	// NEW NEW NEW NEW NEW
+	
+	
+	// Décodage des opcodes sans opérande particulière
+	switch (opcode) {
+		// GMB 8-bit load commands
+		case 0x0a:		// ld a,(bc)
+			write_pair(R_A,read_pair(R_BC));
+			return 2;
+		case 0x1a:		// ld a,(de))
+			write_pair(R_A,read_pair(R_DE));
+			return 2;
+		case 0xfa:
+			sprintf(name, "ld a, ($%04x)", mem_readw(address + 1));
+			*cycles = 4, *length = 3;
+			return;
+		case 0x02:		// ld (bc),a
+			write_pair(R_BC,accu);
+			return 2;
+		case 0x12:		// ld (de),a
+			write_pair(R_DE,accu);
+			return 2;
+		case 0xea:
+			sprintf(name, "ld ($%04x), a", mem_readw(address + 1));
+			*cycles = 4, *length = 3;
+			return;
+		case 0xf0:
+			sprintf(name, "ld a, ($ff%02x)", mem_readb(address + 1));
+			*cycles = 3, *length = 2;
+			return;
+		case 0x08:			// ld (nn), sp PAS DOCUMENTÉ, peut être faux!!!
+			sprintf(name, "ld ($%04x), sp", mem_readw(address + 1));
+			*cycles = 5, *length = 3;
+			return;
+		case 0xe0:		// ld (FF00+n),A pas dans le z80
+			mem_writeb(0xff00 + pc_readb(),accu);
+			return 3;
+		case 0xf2:
+			strcpy(name, "ld a, ($ff00 + c)");
+			*cycles = 2, *length = 1;
+			return;
+		case 0xe2:
+			// S'écrit ld [c], a avec RGBDS
+			strcpy(name, "ld ($ff00 + c), a");
+			*cycles = 2, *length = 1;
+			return;
+		case 0x22:
+			// Formellement ldi (hl), a
+			strcpy(name, "ld (hl+), a");
+			*cycles = 2, *length = 1;
+			return;
+		case 0x2a:		// ldi a,(hl) -> ld (hl),nn en z80
+		{
+			accu = mem_readb(read_pair(R_HL));
+			write_pair(R_HL,read_pair(R_HL)+1);
+			return 2;
 		}
+		case 0x32:
+			// Formellement ldd (hl), a
+			strcpy(name, "ld (hl-), a");
+			*cycles = 2, *length = 1;
+			return;
+		case 0x3a:
+			strcpy(name, "ld a, (hl-)");
+			*cycles = 2, *length = 1;
+			return;
+		// GMB 16-bit load commands
+		case 0xf9:
+			strcpy(name, "ld sp, hl");
+			*cycles = 2, *length = 1;
+			return;
+		// GMB 8-bit arithmetic / logical commands
+		case 0x27:
+			strcpy(name, "daa");
+			*cycles = 1, *length = 1;
+			return;
+		case 0x2f:		// cpl TODO: VERIFIY
+			write_pair(R_A,!accu);
+			return 1;
+		// GMB 16-bit arithmetic / logical commands
+		case 0xe8:
+			sprintf(name, "add sp, %i", (s8)mem_readb(address + 1));
+			*cycles = 4, *length = 2;
+			return;
+		case 0xf8:
+			sprintf(name, "ld hl, sp + %i", (s8)mem_readb(address + 1));
+			*cycles = 3, *length = 2;
+			return;
+		// GMB rotate and shift commands
+		case 0x07:
+			strcpy(name, "rlca");		// a <<= 1
+			*cycles = 1, *length = 1;
+			return;
+		case 0x17:
+			strcpy(name, "rla");		// a <<= 1 with carry
+			*cycles = 1, *length = 1;
+			return;
+		case 0x0f:
+			strcpy(name, "rrca");		// a >>= 1
+			*cycles = 1, *length = 1;
+			return;
+		case 0x1f:
+			strcpy(name, "rra");
+			*cycles = 1, *length = 1;
+			return;
+		// GMB control commands
+		case 0x3f:
+			strcpy(name, "ccf");
+			*cycles = 1, *length = 1;
+			return;
+		case 0x37:
+			strcpy(name, "scf");
+			*cycles = 1, *length = 1;
+			return;
+		case 0x00:		// NOP
+			// Ne fait rien
+			return 1;
+		case 0x76:
+			strcpy(name, "halt");
+			*cycles = 1, *length = 1;
+			return;
+		case 0x10:
+			strcpy(name, "stop");
+			*cycles = 0, *length = 1;
+			return;
+		case 0xf3:
+			strcpy(name, "di");
+			*cycles = 1, *length = 1;
+			return;
+		case 0xfb:
+			strcpy(name, "ei");
+			*cycles = 1, *length = 1;
+			return;
+		case 0xc3:		// jp nn
+			// Saute à l'adresse immédiate
+			PC = pc_readw();
+			return 4;
+		case 0xe9:
+			strcpy(name, "jp hl");
+			*cycles = 1, *length = 1;
+			return;
+		case 0x18:		// jr nn
+		{
+			s8 saut = (s8)pc_readb();
+			PC = PC + saut;
+			return 3;
+		}
+		case 0xcd:		// call nn
+			// Appel d'une fonction à une adresse immédiate
+			SP -= 2;			// Pousse PC (adresse de retour) sur la pile
+			mem_writew(SP, PC + 2);
+			PC = pc_readw();	// Et saute à l'adresse immédiate
+			return 6;
+		case 0xc9:		// ret
+			// Lit l'adresse de retour depuis la pile
+			PC = mem_readw(SP);
+			SP += 2;
+			return 4;
+		case 0xd9:
+			strcpy(name, "reti");
+			*cycles = 4, *length = 1;
+			return;
 	}
+
+	// L'opération à réaliser dépend principalement des bits du haut
+	switch (upper_digit) {
+		case 1:		// 01 rrr sss -> ld r, s
+			op_r_write(mid_digit, op_r_read(low_digit));
+			return low_digit == 6 ? 2 : 1;		// (hl)
+
+		case 2:		// 10 ooo rrr -> ooo a, r (opération arithmétique)
+			{
+				u8 operand = op_r_read(low_digit);
+				// TODO finir...
+				switch (mid_digit)
+				{
+					case 0:		// add
+						flags = 0;		// Cette instruction affecte tous les flags
+						// Calcule le half-carry (carry sur les 4 bits du bas)
+						if ((accu & 0xf) + (operand & 0xf) >= 0x10)
+							flag_set(F_H);
+						// Puis l'addition
+						accu_write(accu + operand);
+					return 1;
+				}
+			}
+
+		case 0:		// 00 xxx xxx (l'opération dépend des bits du bas)
+			switch (low_digit) {
+				case 0:
+					// 00 1cc 000 [nn] -> jr cc, nn
+					if ((opcode & 040) == 040) {
+						sprintf(name, "jr %s, $%04x", conditions[mid_digit & 3], address + 2 + (s8)mem_readb(address + 1));
+						// 3 cycles or 2 if false
+						*length = 2, *cycles = 3;
+					}
+					break;
+				case 1:
+					// 00 dd0 001 [nn nn] -> ld dd, nnnn (16bit load)
+					if ((opcode & 010) == 0) {
+						// Lit dd
+						temp = mid_digit >> 1;
+						// Ecrit la valeur
+						op_dd_write(temp,pc_readw());
+						return 3;
+					}
+					// 00 dd1 001 -> add hl, dd
+					else {
+						sprintf(name, "add hl, %s", pair_names[mid_digit >> 1]);
+						*length = 1, *cycles = 2;
+					}
+					break;
+				case 3:		// 00 ddo 011 -> inc dd si o=0, dec dd sinon
+					// Si on a un inc
+					if((mid_digit << 2) == 0)
+						// TODO: VERIFIY
+						op_dd_write(mid_digit,op_dd_read(mid_digit)+1);
+					// Si on a un dec
+					op_dd_write(mid_digit,op_dd_read(mid_digit)-1);
+					return 2;
+				case 4:
+				case 5:
+					{
+						// 00 rrr 10o -> inc r si o=0, dec r sinon
+						
+						// Operations communes
+						// ===================
+						u8 temp_calcul, r_val;
+						// Lit r
+						temp = mid_digit;
+
+						// Sauve l'ancienne valeur pour le half carry
+						temp_calcul = op_r_read(temp);
+						
+						// Inc ou dec
+						if(low_digit == 4)	// inc
+						{
+							// Incremente r
+							op_r_write(temp,op_r_read(temp)+01);
+							
+							// Met le flag n a zero
+							flag_clear(F_N);
+						}
+						else 	// dec
+						{
+							// Decremente r
+							op_r_write(temp,op_r_read(temp)-01);
+							
+							// Met le flag n a un
+							flag_set(F_N);
+						}
+						
+						// Operations comuunes
+						// ===================
+						// Change le flag Z en fonction de la valeur de r
+						if (op_r_read(temp) == 0)
+							flag_set(F_Z);
+						else
+							flag_clear(F_Z);
+							
+						// Calcul le half carry
+						r_val = op_r_read(temp);
+			
+						r_val = r_val >> 4;
+						temp_calcul = temp_calcul >> 4;
+
+						if(temp_calcul == r_val)
+							flag_clear(F_H);
+						else
+							flag_set(F_H);
+						
+						return 1;
+					}
+					
+				case 6:		// ld r,n et ld (HL), n
+					// 00 rrr 110 [nn] -> ld r, n
+					op_r_write(mid_digit,pc_readb());
+					return mid_digit == 6 ? 3 : 2;		// (hl)
+			}
+			break;
+
+		case 3:		// 11 xxx xxx (l'opération dépend des bits du bas)
+			switch (low_digit) {
+				case 0:
+					// 11 0cc 000 -> ret cc
+					if ((opcode & 040) == 0) {
+						sprintf(name, "ret %s", conditions[mid_digit & 3]);
+						// 5 cycles or 2 if false
+						*length = 1, *cycles = 5;
+					}
+					break;
+				case 1:
+					// 11 qq0 001 -> pop qq (qq est une paire de registres)
+					if ((opcode & 010) == 0) {
+						sprintf(name, "pop %s", stack_reg_names[mid_digit >> 1]);
+						*length = 1, *cycles = 3;
+					}
+					break;
+				case 2:
+					// PAS SUR!! 11 0cc 010 [nn nn] -> jp cc, nn | le bit 2 de c est ignoré! Comment sur GB?
+					if ((opcode & 040) == 0) {
+						sprintf(name, "jp %s, $%04x", conditions[mid_digit & 3], mem_readw(address + 1));
+						// 4 cycles or 3 if false
+						*length = 3, *cycles = 4;
+					}
+					break;
+				case 4:
+					// 11 ccc 100 [nn] -> call cc, nn
+					sprintf(name, "call %s, $%04x", conditions[mid_digit & 3], mem_readw(address + 1));
+					// 6 cycles or 3 if false
+					*length = 3, *cycles = 6;
+					break;
+				case 5:
+					// 11 qq0 101 -> push qq (qq est une paire de registres)
+					if ((opcode & 010) == 0) {
+						sprintf(name, "push %s", stack_reg_names[mid_digit >> 1]);
+						*length = 1, *cycles = 4;
+					}
+					break;
+				case 6:
+					// 11 ooo 110 [nn] -> ooo nn
+					sprintf(name, "%s $%02x", op_table[mid_digit], mem_readb(address + 1));
+					*length = 2, *cycles = 2;
+					break;
+				case 7:
+					// 11 ttt 111 -> rst t
+					sprintf(name, "rst $%02x", mid_digit * 8);
+					*length = 1, *cycles = 4;
+					break;
+			}
+			break;
+	}
+
+	// Extended opcode -> c'est reparti pour un tour
+	if (opcode == 0xcb) {
+		const char *rs_command[8] = {"rlc", "rrc", "rl", "rr", "sla", "sra", "swap", "srl"};
+		opcode = mem_readb(address + 1);
+		upper_digit = (opcode >> 6) & 3, mid_digit = (opcode >> 3) & 7, low_digit = opcode & 7;
+		// 00 ooo rrr -> rotate / shift commands avec registre
+		if ((opcode & 0300) == 0) {
+			sprintf(name, "%s %s", rs_command[mid_digit], reg_names[low_digit]);
+			*length = 2;
+			*cycles = low_digit == 6 ? 4 : 2;		// (HL) -> plus lent
+		}
+		// oo bbb rrr -> bit/set/res b, r (oo != 0)
+		else {
+			const char *bit_command[3] = {"bit", "res", "set"};
+			sprintf(name, "%s %i, %s", bit_command[upper_digit - 1], mid_digit, reg_names[low_digit]);
+			*length = 2;
+			if (low_digit == 6)		// (HL)
+				*cycles = upper_digit == 1 ? 3 : 4;
+			else
+				*cycles = 2;
+		}
+	}	
 
 	dbg_error("unimplemented!");
 	PC += temp_len - 1;

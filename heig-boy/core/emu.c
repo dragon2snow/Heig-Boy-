@@ -31,7 +31,7 @@ int emu_load_cart(const char *file_name) {
 		return -1;
 }
 
-#if 0
+#if 1
 	void emu_do_frame() {
 		int elapsed;
 		while (1) {
