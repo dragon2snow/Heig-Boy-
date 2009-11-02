@@ -1,0 +1,87 @@
+                              1 
+                              2 	; INCLUDE	"global.asm"
+                    FE00      3 	.OAM	= 0xfe00
+                    0043      4 	.SCX	= 0x43
+                    0080      5 	.J_START	= 0x80
+                    0040      6 	.J_SELECT	= 0x40
+                    0020      7 	.J_B	= 0x20
+                    0010      8 	.J_A	= 0x10
+                    0008      9 	.J_DOWN	= 0x08
+                    0004     10 	.J_UP	= 0x04
+                    0002     11 	.J_LEFT	= 0x02
+                    0001     12 	.J_RIGHT	= 0x01
+                             13 	.globl	_perso_init
+                             14 	.globl	_perso_draw
+                             15 	.globl	_perso_handle
+                             16 	.globl	_perso_handle_cam
+                             17 	.globl	_cailloux_init
+                             18 	.globl	_cailloux_draw
+                             19 	.globl	_cailloux_handle
+                             20 	.globl	_game_init
+                             21 	.globl	_game_draw
+                    0078     22 	.Sol	= 8 * 15
+                    0001     23 	.NbCailloux	= 1
+                    0020     24 	.Gravite	= 32
+                    0008     25 	.PatLargeur	= 8
+                    0008     26 	.PatHauteur	= 8
+                             27 	.area	_CODE
+   0000                      28 memcpy::
+   0000 04                   29 	inc	b
+   0001 18 03                30 	jr	2$
+   0003                      31 1$:
+   0003 2A                   32 	ld	a,(hl+)
+   0004 12                   33 	ld	(de), a
+   0005 13                   34 	inc	de
+   0006                      35 2$:
+   0006 0D                   36 	dec	c
+   0007 20 FA                37 	jr	nz,1$
+   0009 05                   38 	dec	b
+   000A 20 F7                39 	jr	nz,1$
+   000C C9                   40 	ret	
+   000D                      41 memset::
+   000D 04                   42 	inc	b
+   000E 18 01                43 	jr	2$
+   0010                      44 1$:
+   0010 22                   45 	ld	(hl+), a
+   0011                      46 2$:
+   0011 0D                   47 	dec	c
+   0012 20 FC                48 	jr	nz,1$
+   0014 05                   49 	dec	b
+   0015 20 F9                50 	jr	nz,1$
+   0017 C9                   51 	ret	
+ASxxxx Assembler V01.75  (GameBoy Z80-like CPU), page 1.
+
+Symbol Table
+
+    .Gravite                        =  0020 
+    .J_A                            =  0010 
+    .J_B                            =  0020 
+    .J_DOWN                         =  0008 
+    .J_LEFT                         =  0002 
+    .J_RIGHT                        =  0001 
+    .J_SELECT                       =  0040 
+    .J_START                        =  0080 
+    .J_UP                           =  0004 
+    .NbCailloux                     =  0001 
+    .OAM                            =  FE00 
+    .PatHauteur                     =  0008 
+    .PatLargeur                     =  0008 
+    .SCX                            =  0043 
+    .Sol                            =  0078 
+    _cailloux_draw                     **** GX
+    _cailloux_handle                   **** GX
+    _cailloux_init                     **** GX
+    _game_draw                         **** GX
+    _game_init                         **** GX
+    _perso_draw                        **** GX
+    _perso_handle                      **** GX
+    _perso_handle_cam                  **** GX
+    _perso_init                        **** GX
+  0 memcpy                             0000 GR
+  0 memset                             000D GR
+
+ASxxxx Assembler V01.75  (GameBoy Z80-like CPU), page 2.
+
+Area Table
+
+   0 _CODE                              size   18   flags 0

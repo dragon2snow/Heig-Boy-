@@ -1,0 +1,81 @@
+                              1 
+                              2 	; INCLUDE	"global.asm"
+                    FE00      3 	.OAM	= 0xfe00
+                    0043      4 	.SCX	= 0x43
+                    0080      5 	.J_START	= 0x80
+                    0040      6 	.J_SELECT	= 0x40
+                    0020      7 	.J_B	= 0x20
+                    0010      8 	.J_A	= 0x10
+                    0008      9 	.J_DOWN	= 0x08
+                    0004     10 	.J_UP	= 0x04
+                    0002     11 	.J_LEFT	= 0x02
+                    0001     12 	.J_RIGHT	= 0x01
+                             13 	.globl	_perso_init
+                             14 	.globl	_perso_draw
+                             15 	.globl	_perso_handle
+                             16 	.globl	_perso_handle_cam
+                             17 	.globl	_cailloux_init
+                             18 	.globl	_cailloux_draw
+                             19 	.globl	_cailloux_handle
+                             20 	.globl	_game_init
+                             21 	.globl	_game_draw
+                    0078     22 	.Sol	= 8 * 15
+                    0001     23 	.NbCailloux	= 1
+                    0020     24 	.Gravite	= 32
+                    0008     25 	.PatLargeur	= 8
+                    0008     26 	.PatHauteur	= 8
+                             27 	.area	_CODE
+   0000                      28 _game_init::
+   0000 21 00 00             29 	ld	hl,#_posCailloux
+   0003 3E 00                30 	ld	a,#0
+   0005 06 00                31 	ld	b,#0
+   0007 0E 01                32 	ld	c,#.NbCailloux
+   0009 CD 00 00             33 	call	memset
+   000C CD 00 00             34 	call	_cailloux_init
+   000F CD 00 00             35 	call	_perso_init
+   0012 C9                   36 	ret	
+   0013                      37 _game_draw::
+   0013 CD 00 00             38 	call	_cailloux_draw
+   0016 CD 00 00             39 	call	_perso_draw
+   0019 C9                   40 	ret	
+   001A                      41 _game_handle::
+   001A CD 00 00             42 	call	_perso_handle
+   001D CD 00 00             43 	call	_cailloux_handle
+   0020 C9                   44 	ret	
+ASxxxx Assembler V01.75  (GameBoy Z80-like CPU), page 1.
+
+Symbol Table
+
+    .Gravite                        =  0020 
+    .J_A                            =  0010 
+    .J_B                            =  0020 
+    .J_DOWN                         =  0008 
+    .J_LEFT                         =  0002 
+    .J_RIGHT                        =  0001 
+    .J_SELECT                       =  0040 
+    .J_START                        =  0080 
+    .J_UP                           =  0004 
+    .NbCailloux                     =  0001 
+    .OAM                            =  FE00 
+    .PatHauteur                     =  0008 
+    .PatLargeur                     =  0008 
+    .SCX                            =  0043 
+    .Sol                            =  0078 
+    _cailloux_draw                     **** GX
+    _cailloux_handle                   **** GX
+    _cailloux_init                     **** GX
+  0 _game_draw                         0013 GR
+  0 _game_handle                       001A GR
+  0 _game_init                         0000 GR
+    _perso_draw                        **** GX
+    _perso_handle                      **** GX
+    _perso_handle_cam                  **** GX
+    _perso_init                        **** GX
+    _posCailloux                       **** GX
+    memset                             **** GX
+
+ASxxxx Assembler V01.75  (GameBoy Z80-like CPU), page 2.
+
+Area Table
+
+   0 _CODE                              size   21   flags 0

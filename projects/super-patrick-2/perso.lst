@@ -1,0 +1,228 @@
+                              1 
+                              2 	; INCLUDE	"global.asm"
+                    FE00      3 	.OAM	= 0xfe00
+                    0043      4 	.SCX	= 0x43
+                    0080      5 	.J_START	= 0x80
+                    0040      6 	.J_SELECT	= 0x40
+                    0020      7 	.J_B	= 0x20
+                    0010      8 	.J_A	= 0x10
+                    0008      9 	.J_DOWN	= 0x08
+                    0004     10 	.J_UP	= 0x04
+                    0002     11 	.J_LEFT	= 0x02
+                    0001     12 	.J_RIGHT	= 0x01
+                             13 	.globl	_perso_init
+                             14 	.globl	_perso_draw
+                             15 	.globl	_perso_handle
+                             16 	.globl	_perso_handle_cam
+                             17 	.globl	_cailloux_init
+                             18 	.globl	_cailloux_draw
+                             19 	.globl	_cailloux_handle
+                             20 	.globl	_game_init
+                             21 	.globl	_game_draw
+                    0078     22 	.Sol	= 8 * 15
+                    0001     23 	.NbCailloux	= 1
+                    0020     24 	.Gravite	= 32
+                    0008     25 	.PatLargeur	= 8
+                    0008     26 	.PatHauteur	= 8
+                             27 	.globl	_joyPressed
+                             28 	.globl	_xCamera
+                             29 	.area	_BSS
+   0000                      30 .xVirgule:
+   0000                      31 	.ds	1
+   0001                      32 .x:
+   0001                      33 	.ds	1
+   0002                      34 .yVirgule:
+   0002                      35 	.ds	1
+   0003                      36 .y:
+   0003                      37 	.ds	1
+   0004                      38 .vx:
+   0004                      39 	.ds	2
+   0006                      40 .vy:
+   0006                      41 	.ds	2
+                             42 	.area	_CODE
+   0000                      43 _perso_init::
+   0000 21 01 00             44 	ld	hl,#.x
+   0003 3E 00                45 	ld	a,#0
+   0005 06 00                46 	ld	b,#0
+   0007 0E 08                47 	ld	c,#8
+   0009 CD 00 00             48 	call	memset
+   000C C9                   49 	ret	
+   000D                      50 _perso_handle::
+   000D 21 06 00             51 	ld	hl,#.vy
+   0010 2A                   52 	ld	a,(hl+)
+   0011 66                   53 	ld	h,(hl)
+   0012 6F                   54 	ld	l,a
+   0013 06 00                55 	ld	b,#0
+   0015 0E 20                56 	ld	c,#.Gravite
+   0017 09                   57 	add	hl,bc
+   0018 7D                   58 	ld	a,l
+   0019 44                   59 	ld	b,h
+   001A 21 06 00             60 	ld	hl,#.vy
+   001D 22                   61 	ld	(hl+), a
+   001E 70                   62 	ld	(hl), b
+   001F 21 04 00             63 	ld	hl,#.vx
+   0022 2A                   64 	ld	a,(hl+)
+   0023 4F                   65 	ld	c,a
+   0024 46                   66 	ld	b,(hl)
+   0025 21 00 00             67 	ld	hl,#.xVirgule
+   0028 2A                   68 	ld	a,(hl+)
+   0029 66                   69 	ld	h,(hl)
+   002A 6F                   70 	ld	l,a
+   002B 09                   71 	add	hl,bc
+   002C 7D                   72 	ld	a,l
+   002D 44                   73 	ld	b,h
+   002E 21 00 00             74 	ld	hl,#.xVirgule
+   0031 22                   75 	ld	(hl+), a
+   0032 70                   76 	ld	(hl), b
+   0033 21 06 00             77 	ld	hl,#.vy
+   0036 2A                   78 	ld	a,(hl+)
+   0037 4F                   79 	ld	c,a
+   0038 46                   80 	ld	b,(hl)
+   0039 21 02 00             81 	ld	hl,#.yVirgule
+   003C 2A                   82 	ld	a,(hl+)
+   003D 66                   83 	ld	h,(hl)
+   003E 6F                   84 	ld	l,a
+   003F 09                   85 	add	hl,bc
+   0040 7D                   86 	ld	a,l
+   0041 44                   87 	ld	b,h
+   0042 21 02 00             88 	ld	hl,#.yVirgule
+   0045 22                   89 	ld	(hl+), a
+   0046 70                   90 	ld	(hl), b
+   0047 21 03 00             91 	ld	hl,#.y
+   004A 7E                   92 	ld	a,(hl)
+   004B FE 70                93 	cp	#(.Sol - .PatHauteur)	
+   004D D4 71 00             94 	call	nc,.collisionDetectee
+   0050 21 00 00             95 	ld	hl,#_joyPressed
+   0053 56                   96 	ld	d,(hl)
+   0054 21 00 01             97 	ld	hl,#0x100
+   0057 3E 02                98 	ld	a,#.J_LEFT
+   0059 A2                   99 	and	d
+   005A C4 7E 00            100 	call	nz,.appuiGauche
+   005D 3E 01               101 	ld	a,#.J_RIGHT
+   005F A2                  102 	and	d
+   0060 C4 82 00            103 	call	nz,.appuiDroite
+   0063 7D                  104 	ld	a,l
+   0064 44                  105 	ld	b,h
+   0065 21 04 00            106 	ld	hl,#.vx
+   0068 22                  107 	ld	(hl+), a
+   0069 70                  108 	ld	(hl), b
+   006A 3E 10               109 	ld	a,#.J_A
+   006C A2                  110 	and	d
+   006D C4 86 00            111 	call	nz,.appuiA
+   0070 C9                  112 	ret	
+   0071                     113 .collisionDetectee:
+   0071 3E 70               114 	ld	a,#(.Sol - .PatHauteur)
+   0073 21 03 00            115 	ld	hl,#.y
+   0076 77                  116 	ld	(hl), a
+   0077 3E 00               117 	ld	a,#0
+   0079 21 06 00            118 	ld	hl,#.vy
+   007C 77                  119 	ld	(hl), a
+   007D C9                  120 	ret	
+   007E                     121 .appuiGauche:
+   007E 21 80 00            122 	ld	hl,#0x80
+   0081 C9                  123 	ret	
+   0082                     124 .appuiDroite:
+   0082 21 80 01            125 	ld	hl,#0x180
+   0085 C9                  126 	ret	
+   0086                     127 .appuiA:
+   0086 21 03 00            128 	ld	hl,#.y
+   0089 7E                  129 	ld	a,(hl)
+   008A FE 70               130 	cp	#(.Sol - .PatHauteur)	
+   008C D8                  131 	ret	c
+   008D 21 00 FD            132 	ld	hl,#(-3 * 0x100)	
+   0090 7D                  133 	ld	a,l
+   0091 44                  134 	ld	b,h
+   0092 21 06 00            135 	ld	hl,#.vy
+   0095 22                  136 	ld	(hl+), a
+   0096 70                  137 	ld	(hl), b
+   0097 C9                  138 	ret	
+   0098                     139 _perso_handle_cam::
+   0098 21 00 00            140 	ld	hl,#_xCamera
+   009B 46                  141 	ld	b,(hl)
+   009C 21 01 00            142 	ld	hl,#.x
+   009F 7E                  143 	ld	a,(hl)
+   00A0 90                  144 	sub	a,b
+   00A1 FE 3C               145 	cp	a,#60
+   00A3 D4 AD 00            146 	call	nc,.scrollEnX
+   00A6 21 00 00            147 	ld	hl,#_xCamera
+   00A9 7E                  148 	ld	a,(hl)
+   00AA E0 43               149 	ldh	(#.SCX), a
+   00AC C9                  150 	ret	
+   00AD                     151 .scrollEnX:
+   00AD 21 01 00            152 	ld	hl,#.x
+   00B0 7E                  153 	ld	a,(hl)
+   00B1 D6 3C               154 	sub	a,#60
+   00B3 21 00 00            155 	ld	hl,#_xCamera
+   00B6 77                  156 	ld	(hl), a
+   00B7 C9                  157 	ret	
+   00B8                     158 _perso_draw::
+   00B8 21 01 00            159 	ld	hl,#.x
+   00BB 7E                  160 	ld	a,(hl)
+   00BC 21 00 00            161 	ld	hl,#_xCamera
+   00BF 46                  162 	ld	b,(hl)
+   00C0 90                  163 	sub	a,b
+   00C1 C6 08               164 	add	a,#8
+   00C3 47                  165 	ld	b,a
+   00C4 21 03 00            166 	ld	hl,#.y
+   00C7 7E                  167 	ld	a,(hl)
+   00C8 C6 10               168 	add	#16
+   00CA 21 00 FE            169 	ld	hl,#.OAM
+   00CD 22                  170 	ld	(hl+), a
+   00CE 70                  171 	ld	(hl), b
+   00CF C9                  172 	ret	
+   00D0                     173 _perso_get_pos::
+   00D0 21 01 00            174 	ld	hl,#.x
+   00D3 46                  175 	ld	b,(hl)
+   00D4 21 03 00            176 	ld	hl,#.y
+   00D7 4E                  177 	ld	c,(hl)
+   00D8 C9                  178 	ret	
+ASxxxx Assembler V01.75  (GameBoy Z80-like CPU), page 1.
+
+Symbol Table
+
+    .Gravite                        =  0020 
+    .J_A                            =  0010 
+    .J_B                            =  0020 
+    .J_DOWN                         =  0008 
+    .J_LEFT                         =  0002 
+    .J_RIGHT                        =  0001 
+    .J_SELECT                       =  0040 
+    .J_START                        =  0080 
+    .J_UP                           =  0004 
+    .NbCailloux                     =  0001 
+    .OAM                            =  FE00 
+    .PatHauteur                     =  0008 
+    .PatLargeur                     =  0008 
+    .SCX                            =  0043 
+    .Sol                            =  0078 
+  0 .appuiA                            0086 R
+  0 .appuiDroite                       0082 R
+  0 .appuiGauche                       007E R
+  0 .collisionDetectee                 0071 R
+  0 .scrollEnX                         00AD R
+  1 .vx                                0004 R
+  1 .vy                                0006 R
+  1 .x                                 0001 R
+  1 .xVirgule                          0000 R
+  1 .y                                 0003 R
+  1 .yVirgule                          0002 R
+    _cailloux_draw                     **** GX
+    _cailloux_handle                   **** GX
+    _cailloux_init                     **** GX
+    _game_draw                         **** GX
+    _game_init                         **** GX
+    _joyPressed                        **** GX
+  0 _perso_draw                        00B8 GR
+  0 _perso_get_pos                     00D0 GR
+  0 _perso_handle                      000D GR
+  0 _perso_handle_cam                  0098 GR
+  0 _perso_init                        0000 GR
+    _xCamera                           **** GX
+    memset                             **** GX
+
+ASxxxx Assembler V01.75  (GameBoy Z80-like CPU), page 2.
+
+Area Table
+
+   0 _CODE                              size   D9   flags 0
+   1 _BSS                               size    8   flags 0

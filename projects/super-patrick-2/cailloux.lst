@@ -1,0 +1,177 @@
+                              1 
+                              2 	; INCLUDE	"global.asm"
+                    FE00      3 	.OAM	= 0xfe00
+                    0043      4 	.SCX	= 0x43
+                    0080      5 	.J_START	= 0x80
+                    0040      6 	.J_SELECT	= 0x40
+                    0020      7 	.J_B	= 0x20
+                    0010      8 	.J_A	= 0x10
+                    0008      9 	.J_DOWN	= 0x08
+                    0004     10 	.J_UP	= 0x04
+                    0002     11 	.J_LEFT	= 0x02
+                    0001     12 	.J_RIGHT	= 0x01
+                             13 	.globl	_perso_init
+                             14 	.globl	_perso_draw
+                             15 	.globl	_perso_handle
+                             16 	.globl	_perso_handle_cam
+                             17 	.globl	_cailloux_init
+                             18 	.globl	_cailloux_draw
+                             19 	.globl	_cailloux_handle
+                             20 	.globl	_game_init
+                             21 	.globl	_game_draw
+                    0078     22 	.Sol	= 8 * 15
+                    0001     23 	.NbCailloux	= 1
+                    0020     24 	.Gravite	= 32
+                    0008     25 	.PatLargeur	= 8
+                    0008     26 	.PatHauteur	= 8
+                    0008     27 	.Largeur	= 8
+                    0008     28 	.Hauteur	= 8
+                    0070     29 	.CaillouY	= .Sol - .Hauteur
+                             30 	.globl	_posCailloux
+                             31 	.area	_CODE
+   0000                      32 _cailloux_init::
+   0000 3E 00                33 	ld	a,#0
+   0002 06 78                34 	ld	b,#120
+   0004 0E 70                35 	ld	c,#(.Sol - 8)
+   0006 CD 67 00             36 	call	.ecritCaillou
+   0009 C9                   37 	ret	
+   000A                      38 _cailloux_draw::
+   000A 16 01                39 	ld	d,#.NbCailloux
+   000C 1E 00                40 	ld	e,#0
+   000E                      41 .boucleDessin:
+   000E 7B                   42 	ld	a,e
+   000F CD 70 00             43 	call	.getOAM
+   0012 E5                   44 	push	hl
+   0013 7B                   45 	ld	a,e
+   0014 CD 5E 00             46 	call	.litCaillou
+   0017 21 00 00             47 	ld	hl,#_xCamera
+   001A 66                   48 	ld	h,(hl)
+   001B 78                   49 	ld	a,b
+   001C 94                   50 	sub	a,h
+   001D C6 08                51 	add	a,#8
+   001F 47                   52 	ld	b,a
+   0020 E1                   53 	pop	hl
+   0021 D5                   54 	push	de
+   0022 0E 80                55 	ld	c,#(.CaillouY + 16)
+   0024 16 00                56 	ld	d,#0
+   0026 CD 7C 00             57 	call	.storeSprite
+   0029 D1                   58 	pop	de
+   002A 1C                   59 	inc	e
+   002B 15                   60 	dec	d
+   002C 20 E0                61 	jr	nz,.boucleDessin
+   002E C9                   62 	ret	
+   002F                      63 _cailloux_handle::
+   002F 16 01                64 	ld	d,#.NbCailloux
+   0031 1E 00                65 	ld	e,#0
+   0033                      66 .boucleGestion:
+   0033 D5                   67 	push	de
+   0034 7B                   68 	ld	a,e
+   0035 CD 5E 00             69 	call	.litCaillou
+   0038 50                   70 	ld	d,b
+   0039 1E 70                71 	ld	e,#.CaillouY
+   003B CD 00 00             72 	call	_perso_get_pos
+   003E 3E 08                73 	ld	a,#.PatLargeur
+   0040 80                   74 	add	b
+   0041 92                   75 	sub	d
+   0042 38 14                76 	jr	c,.dehors
+   0044 3E 08                77 	ld	a,#.PatHauteur
+   0046 81                   78 	add	c
+   0047 93                   79 	sub	e
+   0048 38 0E                80 	jr	c,.dehors
+   004A 3E 08                81 	ld	a,#.Largeur
+   004C 82                   82 	add	d
+   004D 90                   83 	sub	b
+   004E 38 08                84 	jr	c,.dehors
+   0050 3E 08                85 	ld	a,#.Hauteur
+   0052 83                   86 	add	e
+   0053 91                   87 	sub	c
+   0054 38 02                88 	jr	c,.dehors
+   0056                      89 block:
+   0056 18 FE                90 	jr	block
+   0058                      91 .dehors:
+   0058 D1                   92 	pop	de
+   0059 1C                   93 	inc	e
+   005A 15                   94 	dec	d
+   005B 20 D6                95 	jr	nz,.boucleGestion
+   005D C9                   96 	ret	
+   005E                      97 .litCaillou:
+   005E 4F                   98 	ld	c,a
+   005F 06 00                99 	ld	b,#0
+   0061 21 00 00            100 	ld	hl,#_posCailloux
+   0064 09                  101 	add	hl,bc
+   0065 46                  102 	ld	b,(hl)
+   0066 C9                  103 	ret	
+   0067                     104 .ecritCaillou:
+   0067 5F                  105 	ld	e,a
+   0068 16 00               106 	ld	d,#0
+   006A 21 00 00            107 	ld	hl,#_posCailloux
+   006D 19                  108 	add	hl,de
+   006E 70                  109 	ld	(hl), b
+   006F C9                  110 	ret	
+   0070                     111 .getOAM:
+   0070 C6 01               112 	add	a,#1
+   0072 87                  113 	add	a
+   0073 87                  114 	add	a
+   0074 21 00 FE            115 	ld	hl,#.OAM
+   0077 06 00               116 	ld	b,#0
+   0079 4F                  117 	ld	c,a
+   007A 09                  118 	add	hl,bc
+   007B C9                  119 	ret	
+   007C                     120 .storeSprite:
+   007C 79                  121 	ld	a,c
+   007D 22                  122 	ld	(hl+), a
+   007E 78                  123 	ld	a,b
+   007F 22                  124 	ld	(hl+), a
+   0080 7A                  125 	ld	a,d
+   0081 22                  126 	ld	(hl+), a
+   0082 3E 00               127 	ld	a,#0
+   0084 22                  128 	ld	(hl+), a
+   0085 C9                  129 	ret	
+ASxxxx Assembler V01.75  (GameBoy Z80-like CPU), page 1.
+
+Symbol Table
+
+    .CaillouY                       =  0070 
+    .Gravite                        =  0020 
+    .Hauteur                        =  0008 
+    .J_A                            =  0010 
+    .J_B                            =  0020 
+    .J_DOWN                         =  0008 
+    .J_LEFT                         =  0002 
+    .J_RIGHT                        =  0001 
+    .J_SELECT                       =  0040 
+    .J_START                        =  0080 
+    .J_UP                           =  0004 
+    .Largeur                        =  0008 
+    .NbCailloux                     =  0001 
+    .OAM                            =  FE00 
+    .PatHauteur                     =  0008 
+    .PatLargeur                     =  0008 
+    .SCX                            =  0043 
+    .Sol                            =  0078 
+  0 .boucleDessin                      000E R
+  0 .boucleGestion                     0033 R
+  0 .dehors                            0058 R
+  0 .ecritCaillou                      0067 R
+  0 .getOAM                            0070 R
+  0 .litCaillou                        005E R
+  0 .storeSprite                       007C R
+  0 _cailloux_draw                     000A GR
+  0 _cailloux_handle                   002F GR
+  0 _cailloux_init                     0000 GR
+    _game_draw                         **** GX
+    _game_init                         **** GX
+    _perso_draw                        **** GX
+    _perso_get_pos                     **** GX
+    _perso_handle                      **** GX
+    _perso_handle_cam                  **** GX
+    _perso_init                        **** GX
+    _posCailloux                       **** GX
+    _xCamera                           **** GX
+  0 block                              0056 R
+
+ASxxxx Assembler V01.75  (GameBoy Z80-like CPU), page 2.
+
+Area Table
+
+   0 _CODE                              size   86   flags 0

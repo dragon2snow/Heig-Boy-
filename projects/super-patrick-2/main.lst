@@ -1,0 +1,394 @@
+                              1 ;--------------------------------------------------------
+                              2 ; File Created by SDCC : FreeWare ANSI-C Compiler
+                              3 ; Version 2.2.1 Fri Oct 30 21:22:36 2009
+                              4 
+                              5 ;--------------------------------------------------------
+                              6 	.module lcc19360
+                              7 	
+                              8 ;--------------------------------------------------------
+                              9 ; Public variables in this module
+                             10 ;--------------------------------------------------------
+                             11 	.globl _main
+                             12 	.globl _level_load
+                             13 	.globl _fillTile
+                             14 	.globl _game_draw
+                             15 	.globl _game_handle
+                             16 	.globl _game_init
+                             17 	.globl _perso_handle_cam
+                             18 	.globl _set_bkg_tiles
+                             19 	.globl _set_bkg_data
+                             20 	.globl _display_off
+                             21 	.globl _wait_vbl_done
+                             22 	.globl _disable_interrupts
+                             23 	.globl _enable_interrupts
+                             24 	.globl _joypad
+                             25 	.globl _joyState
+                             26 	.globl _main
+                             27 	.globl _level_load
+                             28 	.globl _fillTile
+                             29 ;--------------------------------------------------------
+                             30 ; Externals used
+                             31 ;--------------------------------------------------------
+                             32 	.globl __io_out
+                             33 	.globl __io_in
+                             34 	.globl __io_status
+                             35 	.globl _sys_time
+                             36 	.globl __cpu
+                             37 ;--------------------------------------------------------
+                             38 ; special function registers
+                             39 ;--------------------------------------------------------
+                             40 ;--------------------------------------------------------
+                             41 ; special function bits 
+                             42 ;--------------------------------------------------------
+                             43 ;--------------------------------------------------------
+                             44 ; internal ram data
+                             45 ;--------------------------------------------------------
+                             46 	.area _DATA
+   0000                      47 _joyState::
+   0000                      48 	.ds 1
+   0001                      49 _joyPressed::
+   0001                      50 	.ds 1
+   0002                      51 _xCamera::
+   0002                      52 	.ds 1
+   0003                      53 _posCailloux::
+   0003                      54 	.ds 16
+                             55 ;--------------------------------------------------------
+                             56 ; overlayable items in internal ram 
+                             57 ;--------------------------------------------------------
+                             58 	.area _OVERLAY
+                             59 ;--------------------------------------------------------
+                             60 ; indirectly addressable internal ram data
+                             61 ;--------------------------------------------------------
+                             62 	.area _ISEG
+                             63 ;--------------------------------------------------------
+                             64 ; bit data
+                             65 ;--------------------------------------------------------
+                             66 	.area _BSEG
+                             67 ;--------------------------------------------------------
+                             68 ; external ram data
+                             69 ;--------------------------------------------------------
+                             70 	.area _XSEG
+                             71 ;--------------------------------------------------------
+                             72 ; global & static initialisations
+                             73 ;--------------------------------------------------------
+                             74 	.area _GSINIT
+                             75 	.area _GSFINAL
+                             76 	.area _GSINIT
+                             77 ;--------------------------------------------------------
+                             78 ; Home
+                             79 ;--------------------------------------------------------
+                             80 	.area _HOME
+                             81 	.area _CODE
+                             82 ;--------------------------------------------------------
+                             83 ; code
+                             84 ;--------------------------------------------------------
+                             85 	.area _CODE
+                             86 ;	main.c 25
+                             87 ; genLabel
+                             88 ; genFunction
+                             89 ;	---------------------------------
+                             90 ; Function fillTile
+                             91 ; ---------------------------------
+   0000                      92 ___fillTile_start:
+   0000                      93 _fillTile:
+                             94 	
+                             95 ;	main.c 27
+                             96 ; genAssign
+   0000 11 00 80             97 	ld	de,#0x8000
+                             98 ; genAssign (pointer)
+   0003 3E FF                99 	ld	a,#0xFF
+   0005 12                  100 	ld	(de),a
+                            101 ;	main.c 28
+                            102 ; genAssign
+   0006 11 01 80            103 	ld	de,#0x8001
+                            104 ; genAssign (pointer)
+   0009 3E FF               105 	ld	a,#0xFF
+   000B 12                  106 	ld	(de),a
+                            107 ; genLabel
+   000C                     108 00101$:
+                            109 ; genEndFunction
+                            110 	
+   000C C9                  111 	ret
+   000D                     112 ___fillTile_end:
+                            113 ;	main.c 31
+                            114 ; genLabel
+                            115 ; genFunction
+                            116 ;	---------------------------------
+                            117 ; Function level_load
+                            118 ; ---------------------------------
+   000D                     119 ___level_load_start:
+   000D                     120 _level_load:
+   000D C5                  121 	push	bc
+   000E E8 FE               122 	lda	sp,-2(sp)
+                            123 ;	main.c 33
+                            124 ; genCall
+   0010 CD 00 00            125 	call	_display_off
+                            126 ;	main.c 34
+                            127 ; genCall
+   0013 CD 00 00            128 	call	_disable_interrupts
+                            129 ;	main.c 36
+                            130 ; genIpush
+   0016 21 00 00            131 	ld	hl,#_bglvl01_tiles + 0
+   0019 E5                  132 	push	hl
+                            133 ; genIpush
+   001A 3E 16               134 	ld	a,#0x16
+   001C F5                  135 	push	af
+   001D 33                  136 	inc	sp
+                            137 ; genIpush
+   001E 3E 00               138 	ld	a,#0x00
+   0020 F5                  139 	push	af
+   0021 33                  140 	inc	sp
+                            141 ; genCall
+   0022 CD 00 00            142 	call	_set_bkg_data
+   0025 E8 04               143 	lda	sp,4(sp)
+                            144 ;	main.c 37
+                            145 ; genIpush
+   0027 21 00 00            146 	ld	hl,#_bglvl01_map + 0
+   002A E5                  147 	push	hl
+                            148 ; genIpush
+   002B 3E 12               149 	ld	a,#0x12
+   002D F5                  150 	push	af
+   002E 33                  151 	inc	sp
+                            152 ; genIpush
+   002F 3E 20               153 	ld	a,#0x20
+   0031 F5                  154 	push	af
+   0032 33                  155 	inc	sp
+                            156 ; genIpush
+   0033 3E 00               157 	ld	a,#0x00
+   0035 F5                  158 	push	af
+   0036 33                  159 	inc	sp
+                            160 ; genIpush
+   0037 3E 00               161 	ld	a,#0x00
+   0039 F5                  162 	push	af
+   003A 33                  163 	inc	sp
+                            164 ; genCall
+   003B CD 00 00            165 	call	_set_bkg_tiles
+   003E E8 06               166 	lda	sp,6(sp)
+                            167 ;	main.c 38
+                            168 ; genCall
+   0040 CD 00 00            169 	call	_fillTile
+                            170 ;	main.c 39
+                            171 ; genAssign
+                            172 ; AOP_STK for _level_load_sloc0_1_0
+   0043 F8 00               173 	lda	hl,0(sp)
+   0045 36 40               174 	ld	(hl),#0x40
+   0047 23                  175 	inc	hl
+   0048 36 FF               176 	ld	(hl),#0xFF
+                            177 ; genAssign
+   004A 11 40 FF            178 	ld	de,#0xFF40
+                            179 ; genPointerGet
+   004D 1A                  180 	ld	a,(de)
+   004E 4F                  181 	ld	c,a
+                            182 ; genOr
+                            183 ; Type res[2] = l[2]&r[1]
+                            184 ; Size res[1] = l[1]&r[1]
+   004F 79                  185 	ld	a,c
+   0050 F6 01               186 	or	a,#0x01
+   0052 4F                  187 	ld	c,a
+                            188 ; genAssign (pointer)
+                            189 ; AOP_STK for _level_load_sloc0_1_0
+   0053 2B                  190 	dec	hl
+   0054 5E                  191 	ld	e,(hl)
+   0055 23                  192 	inc	hl
+   0056 56                  193 	ld	d,(hl)
+   0057 79                  194 	ld	a,c
+   0058 12                  195 	ld	(de),a
+                            196 ;	main.c 40
+                            197 ; genAssign
+                            198 ; AOP_STK for _level_load_sloc0_1_0
+   0059 2B                  199 	dec	hl
+   005A 36 40               200 	ld	(hl),#0x40
+   005C 23                  201 	inc	hl
+   005D 36 FF               202 	ld	(hl),#0xFF
+                            203 ; genAssign
+   005F 11 40 FF            204 	ld	de,#0xFF40
+                            205 ; genPointerGet
+   0062 1A                  206 	ld	a,(de)
+   0063 4F                  207 	ld	c,a
+                            208 ; genOr
+                            209 ; Type res[2] = l[2]&r[1]
+                            210 ; Size res[1] = l[1]&r[1]
+   0064 79                  211 	ld	a,c
+   0065 F6 02               212 	or	a,#0x02
+   0067 4F                  213 	ld	c,a
+                            214 ; genAssign (pointer)
+                            215 ; AOP_STK for _level_load_sloc0_1_0
+   0068 2B                  216 	dec	hl
+   0069 5E                  217 	ld	e,(hl)
+   006A 23                  218 	inc	hl
+   006B 56                  219 	ld	d,(hl)
+   006C 79                  220 	ld	a,c
+   006D 12                  221 	ld	(de),a
+                            222 ; genLabel
+   006E                     223 00101$:
+                            224 ; genEndFunction
+   006E E8 02               225 	lda	sp,2(sp)
+   0070 C1                  226 	pop	bc
+   0071 C9                  227 	ret
+   0072                     228 ___level_load_end:
+                            229 ;	main.c 43
+                            230 ; genLabel
+                            231 ; genFunction
+                            232 ;	---------------------------------
+                            233 ; Function main
+                            234 ; ---------------------------------
+   0072                     235 ___main_start:
+   0072                     236 _main:
+   0072 C5                  237 	push	bc
+   0073 E8 FD               238 	lda	sp,-3(sp)
+                            239 ;	main.c 45
+                            240 ; genAssign
+                            241 ; AOP_STK for _main_joyLast_1_1
+   0075 F8 02               242 	lda	hl,2(sp)
+   0077 36 00               243 	ld	(hl),#0x00
+                            244 ;	main.c 46
+                            245 ; genCall
+   0079 CD 0D 00            246 	call	_level_load
+                            247 ;	main.c 47
+                            248 ; genCall
+   007C CD 00 00            249 	call	_game_init
+                            250 ;	main.c 49
+                            251 ; genCall
+   007F CD 00 00            252 	call	_enable_interrupts
+                            253 ;	main.c 50
+                            254 ; genAssign
+                            255 ; AOP_STK for _main_sloc0_1_0
+   0082 F8 00               256 	lda	hl,0(sp)
+   0084 36 40               257 	ld	(hl),#0x40
+   0086 23                  258 	inc	hl
+   0087 36 FF               259 	ld	(hl),#0xFF
+                            260 ; genAssign
+   0089 11 40 FF            261 	ld	de,#0xFF40
+                            262 ; genPointerGet
+   008C 1A                  263 	ld	a,(de)
+   008D 4F                  264 	ld	c,a
+                            265 ; genOr
+                            266 ; Type res[2] = l[2]&r[1]
+                            267 ; Size res[1] = l[1]&r[1]
+   008E 79                  268 	ld	a,c
+   008F F6 80               269 	or	a,#0x80
+   0091 4F                  270 	ld	c,a
+                            271 ; genAssign (pointer)
+                            272 ; AOP_STK for _main_sloc0_1_0
+   0092 2B                  273 	dec	hl
+   0093 5E                  274 	ld	e,(hl)
+   0094 23                  275 	inc	hl
+   0095 56                  276 	ld	d,(hl)
+   0096 79                  277 	ld	a,c
+   0097 12                  278 	ld	(de),a
+                            279 ;	main.c 52
+                            280 ; genLabel
+   0098                     281 00102$:
+                            282 ;	main.c 53
+                            283 ; genCall
+   0098 CD 00 00            284 	call	_joypad
+                            285 ; AOP_HL for _joyState
+   009B 21 00 00            286 	ld	hl,#_joyState + 0
+   009E 73                  287 	ld	(hl),e
+                            288 ;	main.c 54
+                            289 ; genCpl
+                            290 ; AOP_STK for _main_joyLast_1_1
+   009F F8 02               291 	lda	hl,2(sp)
+   00A1 7E                  292 	ld	a,(hl)
+   00A2 2F                  293 	cpl	
+   00A3 4F                  294 	ld	c,a
+                            295 ; genAnd
+                            296 ; AOP_HL for _joyState
+                            297 ; AOP_HL for _joyPressed
+   00A4 79                  298 	ld	a,c
+   00A5 21 00 00            299 	ld	hl,#_joyState + 0
+   00A8 A6                  300 	and	a,(hl)
+   00A9 21 01 00            301 	ld	hl,#_joyPressed + 0
+   00AC 77                  302 	ld	(hl),a
+                            303 ;	main.c 55
+                            304 ; genAssign
+                            305 ; AOP_HL for _joyState
+                            306 ; AOP_STK for _main_joyLast_1_1
+   00AD 21 00 00            307 	ld	hl,#_joyState + 0
+   00B0 7E                  308 	ld	a,(hl)
+   00B1 F8 02               309 	lda	hl,2(sp)
+   00B3 77                  310 	ld	(hl),a
+                            311 ;	main.c 56
+                            312 ; genCall
+   00B4 CD 00 00            313 	call	_game_handle
+                            314 ;	main.c 57
+                            315 ; genCall
+   00B7 CD 00 00            316 	call	_wait_vbl_done
+                            317 ;	main.c 58
+                            318 ; genAssign
+   00BA 11 47 FF            319 	ld	de,#0xFF47
+                            320 ; genAssign (pointer)
+   00BD 3E 00               321 	ld	a,#0x00
+   00BF 12                  322 	ld	(de),a
+                            323 ;	main.c 59
+                            324 ; genCall
+   00C0 CD 00 00            325 	call	_perso_handle_cam
+                            326 ;	main.c 60
+                            327 ; genCall
+   00C3 CD 00 00            328 	call	_game_draw
+                            329 ;	main.c 61
+                            330 ; genAssign
+   00C6 11 47 FF            331 	ld	de,#0xFF47
+                            332 ; genAssign (pointer)
+   00C9 3E E4               333 	ld	a,#0xE4
+   00CB 12                  334 	ld	(de),a
+                            335 ; genGoto
+   00CC C3 98 00            336 	jp	00102$
+                            337 ;	main.c 63
+                            338 ; genLabel
+   00CF                     339 00104$:
+                            340 ; genEndFunction
+   00CF E8 03               341 	lda	sp,3(sp)
+   00D1 C1                  342 	pop	bc
+   00D2 C9                  343 	ret
+   00D3                     344 ___main_end:
+                            345 	.area _CODE
+ASxxxx Assembler V01.75  (GameBoy Z80-like CPU), page 1.
+
+Symbol Table
+
+  0 ___fillTile_end                    000D R
+  0 ___fillTile_start                  0000 R
+  0 ___level_load_end                  0072 R
+  0 ___level_load_start                000D R
+  0 ___main_end                        00D3 R
+  0 ___main_start                      0072 R
+    __cpu                              **** GX
+    __io_in                            **** GX
+    __io_out                           **** GX
+    __io_status                        **** GX
+    _bglvl01_map                       **** GX
+    _bglvl01_tiles                     **** GX
+    _disable_interrupts                **** GX
+    _display_off                       **** GX
+    _enable_interrupts                 **** GX
+  0 _fillTile                          0000 GR
+    _game_draw                         **** GX
+    _game_handle                       **** GX
+    _game_init                         **** GX
+  1 _joyPressed                        0001 GR
+  1 _joyState                          0000 GR
+    _joypad                            **** GX
+  0 _level_load                        000D GR
+  0 _main                              0072 GR
+    _perso_handle_cam                  **** GX
+  1 _posCailloux                       0003 GR
+    _set_bkg_data                      **** GX
+    _set_bkg_tiles                     **** GX
+    _sys_time                          **** GX
+    _wait_vbl_done                     **** GX
+  1 _xCamera                           0002 GR
+
+ASxxxx Assembler V01.75  (GameBoy Z80-like CPU), page 2.
+
+Area Table
+
+   0 _CODE                              size   D3   flags 0
+   1 _DATA                              size   13   flags 0
+   2 _OVERLAY                           size    0   flags 0
+   3 _ISEG                              size    0   flags 0
+   4 _BSEG                              size    0   flags 0
+   5 _XSEG                              size    0   flags 0
+   6 _GSINIT                            size    0   flags 0
+   7 _GSFINAL                           size    0   flags 0
+   8 _HOME                              size    0   flags 0

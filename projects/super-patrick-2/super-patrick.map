@@ -1,0 +1,253 @@
+AREA .  .ABS.
+	RADIX HEX
+	BASE 0000
+	SIZE 0000
+	ATTRIB ABS OVR
+	GLOBALS
+		l__HEAP	0000
+		l__BSEG	0000
+		l_.  .ABS.	0000
+		l__GSFINAL	0000
+		l__ISEG	0000
+		s_.  .ABS.	0000
+		s__HEADER	0000
+		l__XSEG	0000
+		.init	0000
+		l__OVERLAY	0000
+		l__LIT	0000
+		l__GSINIT	0000
+		l__GSINITTAIL	0001
+		l__DATA	0013
+		l__BSS	0061
+		l__BASE	016F
+		l__HOME	01AC
+		l__HEADER	01E1
+		s__CODE	0200
+		l__CODE	055B
+		s__HOME	075B
+		s__BASE	0907
+		s__GSINITTAIL	0A76
+		s__LIT	0A76
+		s__GSINIT	0A76
+		s__GSFINAL	0A77
+		.OAM	C000
+		s__DATA	C0A0
+		s__BSS	C0B3
+		s__HEAP	C114
+		s__BSEG	C114
+		s__ISEG	C114
+		s__XSEG	C114
+		s__OVERLAY	C114
+		.STACK	E000
+		.refresh_OAM	FF80
+AREA _CODE
+	RADIX HEX
+	BASE 0200
+	SIZE 055B
+	ATTRIB REL CON
+	GLOBALS
+		_fillTile	0200
+		_level_load	020D
+		_main	0272
+		_cailloux_init	02D3
+		_cailloux_draw	02DD
+		_cailloux_handle	0302
+		_game_init	0359
+		_game_draw	036C
+		_game_handle	0373
+		_perso_init	037A
+		_perso_handle	0387
+		_perso_handle_cam	0412
+		_perso_draw	0432
+		_perso_get_pos	044A
+		memcpy	0453
+		memset	0460
+		_bglvl01_tiles	046B
+		_bglvl01_map	051B
+AREA _HEADER
+	RADIX HEX
+	BASE 0000
+	SIZE 01E1
+	ATTRIB ABS OVR
+	GLOBALS
+		_exit	01D2
+AREA _HOME
+	RADIX HEX
+	BASE 075B
+	SIZE 01AC
+	ATTRIB REL CON
+	GLOBALS
+		.set_mode	075B
+		.remove_VBL	076B
+		.remove_LCD	0771
+		.remove_TIM	0777
+		.remove_SIO	077D
+		.remove_JOY	0783
+		.add_VBL	0789
+		.add_LCD	078F
+		.add_TIM	0795
+		.add_SIO	079B
+		.add_JOY	07A1
+		.remove_int	07A7
+		.add_int	07C7
+		.wait_vbl_done	07E3
+		_wait_vbl_done	07E3
+		_display_off	07FA
+		.display_off	07FA
+		.serial_IO	081B
+		_mode	084A
+		_get_mode	0853
+		_enable_interrupts	0858
+		_disable_interrupts	085A
+		_reset	085C
+		.reset	085C
+		_set_interrupts	0862
+		_remove_VBL	086D
+		_remove_LCD	0878
+		_remove_TIM	0883
+		_remove_SIO	088E
+		_remove_JOY	0899
+		_add_VBL	08A4
+		_add_LCD	08AF
+		_add_TIM	08BA
+		_add_SIO	08C5
+		_add_JOY	08D0
+		_clock	08DB
+		__printTStates	08E4
+		banked_call	08E5
+		banked_ret	08FE
+AREA _BASE
+	RADIX HEX
+	BASE 0907
+	SIZE 016F
+	ATTRIB REL CON
+	GLOBALS
+		.padup	0907
+		_waitpadup	0907
+		.jpad	0917
+		.wait_pad	0944
+		_joypad	094B
+		_waitpad	0950
+		_set_win_data	095A
+		_set_bkg_data	095A
+		_set_sprite_data	09A7
+		.copy_vram	09D6
+		_get_data	09E5
+		_set_data	09E5
+		_set_bkg_tiles	09F8
+		.set_xy_wtt	0A0C
+		.set_xy_btt	0A1D
+		.set_xy_tt	0A2C
+		_set_tiles	0A5D
+AREA _LIT
+	RADIX HEX
+	BASE 0A76
+	SIZE 0000
+	ATTRIB REL CON
+AREA _GSINIT
+	RADIX HEX
+	BASE 0A76
+	SIZE 0000
+	ATTRIB REL CON
+	GLOBALS
+		gsinit	0A76
+AREA _GSINITTAIL
+	RADIX HEX
+	BASE 0A76
+	SIZE 0001
+	ATTRIB REL CON
+AREA _GSFINAL
+	RADIX HEX
+	BASE 0A77
+	SIZE 0000
+	ATTRIB REL CON
+AREA _DATA
+	RADIX HEX
+	BASE C0A0
+	SIZE 0013
+	ATTRIB REL CON
+	GLOBALS
+		_joyState	C0A0
+		_joyPressed	C0A1
+		_xCamera	C0A2
+		_posCailloux	C0A3
+AREA _BSS
+	RADIX HEX
+	BASE C0B3
+	SIZE 0061
+	ATTRIB REL CON
+	GLOBALS
+		__cpu	C0B3
+		.mode	C0B4
+		__io_out	C0B5
+		__io_in	C0B6
+		__io_status	C0B7
+		.vbl_done	C0B8
+		__current_bank	C0B9
+		_sys_time	C0BA
+		.sys_time	C0BA
+		.int_0x40	C0BC
+		.int_0x48	C0CC
+		.int_0x50	C0DC
+		.int_0x58	C0EC
+		.int_0x60	C0FC
+AREA _HEAP
+	RADIX HEX
+	BASE C114
+	SIZE 0000
+	ATTRIB REL CON
+	GLOBALS
+		_malloc_heap_start	C114
+AREA _OVERLAY
+	RADIX HEX
+	BASE C114
+	SIZE 0000
+	ATTRIB REL CON
+AREA _ISEG
+	RADIX HEX
+	BASE C114
+	SIZE 0000
+	ATTRIB REL CON
+AREA _BSEG
+	RADIX HEX
+	BASE C114
+	SIZE 0000
+	ATTRIB REL CON
+AREA _XSEG
+	RADIX HEX
+	BASE C114
+	SIZE 0000
+	ATTRIB REL CON
+MODULES
+	FILE c:\Users\Florian\Documents\Cours\PDG\devkit-C\lib/small/asxxxx/gb/crt0.o
+		NAME Runtime
+	FILE main.o
+		NAME lcc19360
+	FILE cailloux.o
+	FILE game.o
+	FILE perso.o
+	FILE util.o
+	FILE gfx/level-01/bglvl01.til.o
+		NAME lcc30440
+	FILE gfx/level-01/bglvl01.map.o
+		NAME lcc34400
+LIBRARIES
+	LIBRARY c:\Users\Florian\Documents\Cours\PDG\devkit-C\lib/small/asxxxx/gb/gb.lib
+		MODULE pad.o
+	LIBRARY c:\Users\Florian\Documents\Cours\PDG\devkit-C\lib/small/asxxxx/gb/gb.lib
+		MODULE set_data.o
+	LIBRARY c:\Users\Florian\Documents\Cours\PDG\devkit-C\lib/small/asxxxx/gb/gb.lib
+		MODULE cpy_data.o
+	LIBRARY c:\Users\Florian\Documents\Cours\PDG\devkit-C\lib/small/asxxxx/gb/gb.lib
+		MODULE set_bk_t.o
+	LIBRARY c:\Users\Florian\Documents\Cours\PDG\devkit-C\lib/small/asxxxx/gb/gb.lib
+		MODULE set_xy_t.o
+USERBASEDEF
+	_CODE=0x0200
+	_DATA=0xC0A0
+	_CODE_1=0x4000
+USERGLOBALDEF
+	.OAM=0xC000
+	.STACK=0xE000
+	.refresh_OAM=0xFF80
+	.init=0x0000

@@ -1,0 +1,8 @@
+    Fonds.Ajoute "bglvl01", 1
+    Fonds[1].EmulGBA = faux
+    ModeHexa.FondActif = vrai
+    Editeur.Deplace 561, 431, 85, 108, faux
+    Fin
+
+
+

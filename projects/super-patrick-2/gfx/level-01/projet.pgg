@@ -1,0 +1,50 @@
+#Fichier de projet GBA Graphics
+
+#Infos utiles sur la dernière session
+ .section infos
+  Répertoire = "C:\Users\Florian\Documents\Cours\PDG\devkit-C\projects\super-patrick-2\gfx\level-01"
+  Script = "script.spt"
+  AidePerso = "lisezmoi.htm"
+
+  convert.couleurMasque = RGB(255,0,254)
+  convert.luminosite   GAMMA=RGB(1.000,1.000,1.000)  ADD=RGB(0.0,0.0,0.0)  ALPHA=RGB(0.0,0.0,0.0)
+  convert.mode = 0
+
+  system.sauverParamsMapsAuto = faux
+  Format = "Standard"
+
+  DefModele "Default"		{
+  }
+  Modele = "Default"
+
+  Plateforme = "Game Boy, Nintendo"
+  GBA.paletteMask = vrai
+  GBA.mirrorMask = vrai
+  GBA.align = 0
+  GBA.revColorOrder = faux
+  GBC.paletteMask = vrai
+  GBC.mirrorMask = vrai
+  GBC.align = 0
+  GBC.dmgmode = vrai
+  Fin
+
+#Eléments de l'arbre du projet
+ .section fichiers
+ #--------------
+  Elément: bglvl01
+  Type: tileset
+  Fichier: bglvl01.til.c
+  Base: 
+ #--------------
+  Elément: bglvl01
+  Type: carte
+  Fichier: bglvl01.map.c
+  Base: 
+ Fin
+
+#Section où vous pouvez entrer n'importe quelle commande de script. Cela vous permet de régler les différentes variables.
+ .section données
+  Fin
+
+
+
