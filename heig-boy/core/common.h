@@ -14,7 +14,9 @@ typedef signed short s16;
 typedef signed int s32;
 typedef unsigned long long u64;
 
+#ifndef __cplusplus			// Déjà défini en C++
 typedef enum {false=0, true} bool;
+#endif
 
 /** Permet d'obtenir un masque pour un bit donné. Par exemple:
 	x & BIT(7) teste si le bit 7 est 'set'. */
