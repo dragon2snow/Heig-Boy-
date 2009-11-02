@@ -14,9 +14,11 @@ struct STAT_t {
 #define lcd_status	(*((struct STAT_t*)&REG(STAT)))
 // Ligne courante du balayage LCD
 #define lcd_line	REG(LY)
+#define lcd_enabled	(REG(LCDC) & BIT(7))
 
 // Nombre de cycles jusqu'au prochain événement
 static int next_event;
+bool lcd_frame_end_flag = false;
 
 void lcd_init() {
 	next_event = 0;
@@ -37,7 +39,8 @@ void lcd_tick(int elapsed) {
 				// Prochaine ligne
 				if (++lcd_line == 144) {
 					// Balayage au fond du LCD => commencement de la vblank
-					cpu_trigger_irq(INT_VBLANK);
+					if (lcd_enabled)
+						cpu_trigger_irq(INT_VBLANK);
 					lcd_status.mode = 1;
 					next_event += 456;
 				}
@@ -46,16 +49,16 @@ void lcd_tick(int elapsed) {
 					next_event += 80;
 				}
 				// La ligne demandée par l'utilisateur correspond
-				if (lcd_line == REG(LYC))
+				if (lcd_line == REG(LYC) && lcd_enabled)
 					cpu_trigger_irq(INT_STAT);
 				break;
 			case 1:		// vblank
 				// Fin de la vblank? (10 lignes)
 				if (++lcd_line == 154) {
 					// On recommence en haut
-					lcd_status.mode = 2;
-					lcd_line = 0;
-					next_event += 80;
+					lcd_status.mode = 0;
+					lcd_line = -1;
+					continue;
 				}
 				else
 					next_event += 456;
@@ -63,13 +66,15 @@ void lcd_tick(int elapsed) {
 			case 2:		// lecture de l'OAM
 				lcd_status.mode = 3;
 				next_event += 172;
-				lcd_draw_line();
 				break;
 			case 3:		// dessin en cours
 				lcd_status.mode = 0;
 				next_event += 204;
+				lcd_draw_line();
+				// La dernière ligne a été dessinée?
+				if (lcd_line == 143)
+					lcd_frame_end_flag = true;
 				break;
 		}
 	}
 }
-

@@ -62,7 +62,7 @@ enum {
 /** Donne l'accès à un port par son nom documenté. Il n'est pas nécessaire
 	d'utiliser le préfixe R_*.
 	\note Pas très propre mais améliore beaucoup la lisibilité car les accès
-		aux IO sont malheureusement légion...
+		aux IO sont vraiment légion...
 */
 #define REG(r)		mem_io[R_##r]
 

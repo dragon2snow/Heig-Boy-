@@ -190,7 +190,7 @@ void cpu_disassemble(u16 address, char *name, int *length, int *cycles) {
 		case 1:		// 01 rrr sss -> ld r, s
 			sprintf(name, "ld %s, %s", reg_names[mid_digit], reg_names[low_digit]);
 			*length = 1;
-			*cycles = low_digit == 6 ? 2 : 1;		// (hl)
+			*cycles = mid_digit == 6 ? 2 : 1;		// (hl)
 			break;
 
 		case 2:		// 10 ooo rrr -> ooo a, r (opération arithmétique)
@@ -235,7 +235,7 @@ void cpu_disassemble(u16 address, char *name, int *length, int *cycles) {
 					// 00 rrr 110 [nn] -> ld r, n
 					sprintf(name, "ld %s, $%02x", reg_names[mid_digit], mem_readb(address + 1));
 					*length = 2;
-					*cycles = low_digit == 6 ? 3 : 2;		// (hl)
+					*cycles = mid_digit == 6 ? 3 : 2;		// (hl)
 					break;
 			}
 			break;

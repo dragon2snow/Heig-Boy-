@@ -7,10 +7,10 @@
 #include <stdlib.h>		// rand
 #include <stdio.h>		// temp
 
-#define SAMPLE_RATE 44100		// samples per second
-#define BASE_AMPL   512			// base amplitude
+#define SAMPLE_RATE 44100		// fréquence d'échantillonnage
+#define BASE_AMPL   512			// multiplicateur d'amplitude global
 
-// Configuration des canaux quadrangulaires (1 et 2)
+// Configuration des canaux quadrangulaires (1 et 2) - cf. pandocs
 typedef struct {
 	struct {				// sweep (balayage fréquence)
 		u8 sweep_shift: 3;	// n
@@ -84,7 +84,7 @@ typedef struct {
 		u8 so1_en1: 1, so1_en2: 1, so1_en3: 1, so1_en4: 1;
 		u8 so2_en1: 1, so2_en2: 1, so2_en3: 1, so2_en4: 1;
 	};
-	struct {
+	struct {		// NR52 (statut)
 		// Etat de la lecture des canaux, lecture seule
 		u8 ch1_playing: 1, ch2_playing: 1, ch3_playing: 1, ch4_playing: 1;
 		u8 dummy: 3, sound_enable: 1;		// Master enable
@@ -397,8 +397,10 @@ void sound_render(s16 *buf, unsigned len) {
 		mask12 = ch5.so1_en2 ? 0xffff : 0, mask22 = ch5.so2_en2 ? 0xffff : 0,
 		mask13 = ch5.so1_en3 ? 0xffff : 0, mask23 = ch5.so2_en3 ? 0xffff : 0,
 		mask14 = ch5.so1_en4 ? 0xffff : 0, mask24 = ch5.so2_en4 ? 0xffff : 0;
-	if (!ch5.sound_enable)		// Son désactivé
+	if (!ch5.sound_enable) {	// Son désactivé
+		memset(buf, 0, len * 2 * 2);
 		return;
+	}
 	// Rend le son dans les buffers
 	tone_channel_render(&tone_ch[0], mix_buf1, len);
 	tone_channel_render(&tone_ch[1], mix_buf2, len);
@@ -416,6 +418,8 @@ void sound_render(s16 *buf, unsigned len) {
 			(*mix_buf2++ & mask22) +
 			(*mix_buf3++ & mask23) +
 			(*mix_buf4++ & mask24);
+		left = (left * ch5.so1_vol) >> 3;		// multiplie par le volume global
+		right = (right * ch5.so2_vol) >> 3;		// >>3 au lieu de /7 pour être plus rapide
 		*buf++ = min(32767, max(-32768, right));
 		*buf++ = min(32767, max(-32768, left));
 	}
@@ -429,10 +433,10 @@ void sound_init() {
 }
 
 u8 sound_read(u16 port) {
-	// TODO
+	// TODO gérer le statut (NR52)...
 	switch (port) {
 		default:
-			return 0xff;
+			return mem_io[port];
 	}
 }
 

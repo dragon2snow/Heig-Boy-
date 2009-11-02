@@ -16,16 +16,20 @@ typedef unsigned long long u64;
 
 typedef enum {false=0, true} bool;
 
-//#define NULL ((void*)0)
+/** Permet d'obtenir un masque pour un bit donné. Par exemple:
+	x & BIT(7) teste si le bit 7 est 'set'. */
 #define BIT(x)		(1 << (x))
 
+/** Sous windows ces macros sont définies en standard, et c'est bien pratique!
+	Retourne respectivement le minimum et le maximum de deux nombres */
 #ifndef WIN32
 	#define min(x, y)		((x) < (y) ? (x) : (y))
 	#define max(x, y)		((x) > (y) ? (x) : (y))
 #endif
 
+/** Allocation sur la pile, car le C standard ne supporte pas les tableaux
+	locaux d'une taille non constante... */
 #if _MSC_VER > 1000
-	// Allocation sur la pile
 	#define alloca _alloca
 #endif
 

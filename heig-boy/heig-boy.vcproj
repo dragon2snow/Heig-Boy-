@@ -41,6 +41,8 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
+				InlineFunctionExpansion="0"
+				FavorSizeOrSpeed="0"
 				AdditionalIncludeDirectories="core;win32"
 				PreprocessorDefinitions="WIN32;_DEBUG;_CONSOLE;_CRT_SECURE_NO_WARNINGS"
 				MinimalRebuild="true"
@@ -95,7 +97,7 @@
 			OutputDirectory="$(SolutionDir)$(ConfigurationName)"
 			IntermediateDirectory="$(ConfigurationName)"
 			ConfigurationType="1"
-			CharacterSet="1"
+			CharacterSet="0"
 			WholeProgramOptimization="1"
 			>
 			<Tool
@@ -116,10 +118,11 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="2"
+				InlineFunctionExpansion="2"
 				EnableIntrinsicFunctions="true"
 				AdditionalIncludeDirectories="core;win32"
 				PreprocessorDefinitions="WIN32;NDEBUG;_CONSOLE;_CRT_SECURE_NO_WARNINGS"
-				RuntimeLibrary="2"
+				RuntimeLibrary="0"
 				EnableFunctionLevelLinking="true"
 				UsePrecompiledHeader="0"
 				WarningLevel="3"
@@ -136,6 +139,7 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
+				AdditionalDependencies="winmm.lib"
 				LinkIncremental="1"
 				GenerateDebugInformation="true"
 				SubSystem="1"
@@ -178,7 +182,7 @@
 				Name="core"
 				>
 				<File
-					RelativePath=".\core\cpu.c"
+					RelativePath=".\core\cpu-mine.c"
 					>
 				</File>
 				<File
@@ -194,11 +198,19 @@
 					>
 				</File>
 				<File
+					RelativePath=".\core\io.c"
+					>
+				</File>
+				<File
 					RelativePath=".\core\lcd.c"
 					>
 				</File>
 				<File
 					RelativePath=".\core\lcd_status.c"
+					>
+				</File>
+				<File
+					RelativePath=".\core\mbc.c"
 					>
 				</File>
 				<File
@@ -209,22 +221,22 @@
 					RelativePath=".\core\sound.c"
 					>
 				</File>
+				<File
+					RelativePath=".\core\timer.c"
+					>
+				</File>
 			</Filter>
 			<Filter
 				Name="win32"
 				>
 				<File
-					RelativePath=".\win32\main.c"
+					RelativePath=".\win32\main-sound.c"
 					>
 				</File>
 				<File
 					RelativePath=".\win32\os_specific.c"
 					>
 				</File>
-				<Filter
-					Name="test"
-					>
-				</Filter>
 			</Filter>
 		</Filter>
 		<Filter
@@ -252,7 +264,15 @@
 					>
 				</File>
 				<File
+					RelativePath=".\core\io.h"
+					>
+				</File>
+				<File
 					RelativePath=".\core\lcd.h"
+					>
+				</File>
+				<File
+					RelativePath=".\core\mbc.h"
 					>
 				</File>
 				<File
@@ -265,6 +285,10 @@
 				</File>
 				<File
 					RelativePath=".\core\sound.h"
+					>
+				</File>
+				<File
+					RelativePath=".\core\timer.h"
 					>
 				</File>
 			</Filter>

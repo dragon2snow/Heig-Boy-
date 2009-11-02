@@ -23,6 +23,7 @@ void dbg_warning(const char *fmt, ...) {
 	va_start(ap, fmt);
 	debug(COL_YELLOW, "Warning", fmt, ap);
 	va_end(ap);
+	system("pause");
 }
 void dbg_error(const char *fmt, ...) {
 	va_list ap;

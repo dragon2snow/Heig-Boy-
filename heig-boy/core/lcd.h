@@ -3,6 +3,8 @@
 
 #include "common.h"
 
+extern bool lcd_frame_end_flag;
+
 /** Initialisation du LCD (au chargement du jeu) */
 void lcd_init();
 /** Initialisation de la partie dessin (faite automatiquement par lcd_init). */

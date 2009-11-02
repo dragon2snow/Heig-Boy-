@@ -48,8 +48,8 @@ typedef struct {
 	Buffer écran
 */
 // Temporaire: table de conversion des couleurs (GB <-> 32 bits)
-//static const u32 color_table[4] = {0xff00e7ff, 0xff009ac7, 0xff004d8f, 0xff000057};
 static const u32 color_table[4] = {0xffd3de34, 0xffa5b52b, 0xff70831b, 0xff284440};
+//static const u32 color_table[4] = {0xff00e7ff, 0xff009ac7, 0xff004d8f, 0xff000057};
 //static const u32 color_table[4] = {0xffffffff, 0xffaaaaaa, 0xff555555, 0xff000000};
 static u8 bg_palette[4], obj_palette[2][4];
 /** Bitmap 32 bits de 256x144 pixels */
@@ -57,32 +57,50 @@ static u32 *lcd_buffer = NULL;
 // Taille d'une ligne de buffer
 #define BUFFER_LINE_PITCH 256
 // Donne la ligne n° n du buffer
-#define lcd_buffer_line(n)	(lcd_buffer + n * BUFFER_LINE_PITCH + 8)
+#define lcd_buffer_line(n)	(lcd_buffer + n * BUFFER_LINE_PITCH)
 
 /** Réalise le rendu du fond d'écran: fond uni utilisant la couleur 0 de la
-	BGP (palette du BG). */
-void backdrop_render();
+	BGP (palette du BG).
+	\param pixel tampon de destination, contenant au moins 176 pixels 32 bits.
+	\note Pour toutes les fonctions suivantes prenant un tampon de 176 pixels,
+		seuls les 160 pixels du milieu sont visibles, les autres sont utilisés
+		pour les débordements éventuels des routines graphiques.
+*/
+void backdrop_render(u32 *pixel);
 /** Réalise le rendu de la ligne courante du BG (background).
-	Il s'agit d'une tile map. */
-static void bg_render();
+	Il s'agit d'une tile map.
+	\param pixel tampon de destination, contenant au moins 176 pixels 32 bits.
+*/
+static void bg_render(u32 *pixel);
 /** Réalise le rendu de la fenêtre pour la ligne courante.
 	La fenêtre vient remplacer le BG et commence à la position (WX, WY).
+	\param pixel tampon de destination, contenant au moins 176 pixels 32 bits.
 */
-static void win_render();
+static void win_render(u32 *pixel);
 /** Réalise le rendu des objets pour la ligne courante. Le rendu doit être fait
 	en deux passes afin d'intercaler le BG entre les objets (en fonction de
 	leur priorité). On appellera donc la fonction deux fois en ayant mis le
 	paramètre à la valeur adéquate.
+	\param pixel tampon de destination, contenant au moins 176 pixels 32 bits.
 	\param skipped_prio 0 pour dessiner les objets au-dessous du BG, 1 pour
 		ceux au-dessus
 */
-static void obj_render(u8 skipped_prio);
+static void obj_render(u32 *pixel, u8 skipped_prio);
 /** Dessine un motif de 8 pixels au format GB 2 bits entrelacé sur l'écran.
 	\param pixel buffer destination de l'écran (32 bits)
+	\param color_table table de traduction de couleur 2 bits <-> 32 bits
 	\param palette table of 4 colors to use for mapping the gray shades
 	\param tile_ptr pointeur sur le motif
 */
-static void draw_tile(u32 *pixel, const u8 *palette, const u8 *tile_ptr);
+static void draw_tile(u32 *pixel, const u32 *color_table, const u8 *palette, const u8 *tile_ptr);
+/** Dessine un motif de 8 pixels au format GB 2 bits entrelacé sur l'écran,
+	sans tenir compte de la transparence (couleur 0).
+	\param pixel buffer destination de l'écran (32 bits)
+	\param color_table table de traduction de couleur 2 bits <-> 32 bits
+	\param palette table of 4 colors to use for mapping the gray shades
+	\param tile_ptr pointeur sur le motif
+*/
+void draw_tile_replace(u32 *pixel, const u32 *color_table, const u8 *palette, const u8 *tile_ptr);
 /** Retourne un motif de 8x8 au format GB 2 bits horizontalement.
 	\param in pointeur sur le motif (2 octets)
 	\param out destination (2 octets)
@@ -92,7 +110,6 @@ static void flip_tile(u8 *out, const u8 *in);
 	mapper les niveaux de gris.
 	\param out table de destination de 4 éléments
 	\param reg un registre palette (BGP, OBP...)
-	Par exe
 */
 static void translate_palette(u8 *out, u8 reg);
 /** Routine super temporaire qui balance le rendu actuel sur l'écran via un
@@ -100,17 +117,25 @@ static void translate_palette(u8 *out, u8 reg);
 static void temp_render_to_screen();
 
 void lcd_draw_line() {
+	u32 *dest = lcd_buffer_line(cur_line);
 	// Prépare les palettes
 	translate_palette(bg_palette, REG(BGP));
 	translate_palette(obj_palette[0], REG(OBP0));
 	translate_palette(obj_palette[1], REG(OBP1));
 	// Fait le rendu à proprement parler
-	backdrop_render();
-	if (lcd_ctrl.enable) {		// LCD activé
-		obj_render(0);
-		bg_render();
-		win_render();
-		obj_render(1);
+	backdrop_render(dest);
+	if (lcd_ctrl.enable) {			// LCD activé
+		unsigned i;
+		u32 bgwin[160 + 16] = {0};	// Tampon temporaire pour la fusion BG/WIN
+		bg_render(bgwin);			// Dessin du BG et de la fenêtre
+		win_render(bgwin);			// aplatie par dessus
+		// Priorité: objets avec prio=0, BG, fenêtre, objets avec prio=1
+		obj_render(dest, 0);
+		// Dessine la fusion BG/fenêtre sur le tampon écran
+		for (i = 8; i < 168; i++)
+			if (bgwin[i] != 0)		// opaque?
+				dest[i] = bgwin[i];
+		obj_render(dest, 1);
 	}
 	temp_render_to_screen();
 }
@@ -120,41 +145,43 @@ void lcd_draw_init() {
 		lcd_buffer = malloc(256 * 144 * sizeof(u32));
 }
 
-void backdrop_render() {
-	int i;
-	u32 *pixel = lcd_buffer_line(cur_line);
-	for (i = 0; i < 160; i++)
-		*pixel++ = color_table[bg_palette[0]];
+void backdrop_render(u32 *pixel) {
+	unsigned i;
+	for (i = 8; i < 168; i++)		// 8 pixels de libre à gauche et à droite
+		pixel[i] = color_table[bg_palette[0]];
 }
 
-void bg_render() {
+void bg_render(u32 *pixel) {
 	// Position (transformée dans le repère écran) du premier pixel à traiter
 	unsigned offset_y = mod256(scroll_y + cur_line);
 	unsigned tile_offset_x = mod32(div8(scroll_x));
-	// Calcule l'adresse des objets en mémoire
+	unsigned i;
+	// Calcule l'adresse de la map et du charset en mémoire en fonction des
+	// registres de configuration. Ajoute également l'offset depuis le haut de
+	// l'écran: 1 ligne pour 8 pixels dans la map, et une ligne (2 octets) par
+	// pixel dans le motif, modulo la taille du motif (8 pixels). Voir rapport.
 	u8 *tile_data = mem_vram + (lcd_ctrl.tile_addr ? 0 : 0x1000) +
 		mod8(offset_y) * 2;
 	u8 *bg_map = mem_vram + (lcd_ctrl.bg_map_addr ? 0x1C00 : 0x1800) +
 		div8(offset_y) * 32;
-	// Buffer écran
-	u32 *pixel = lcd_buffer_line(cur_line) - mod8(scroll_x);
-	unsigned i;
-	// BG désactivé
+	// BG désactivé -> rien à faire
 	if (!lcd_ctrl.bg_en)
 		return;
+	// Tampon écran - laisse 8 pixels de libre à gauche pour dépassement
+	pixel = pixel + 8 - mod8(scroll_x);
 	// Dessin de la map à proprement parler
 	for (i = 0; i < 21; i++) {
-		// Si le mode est 1, le n° de tile est signé, sinon non signé
+		// Lit la map pour obtenir le n° de motif à cet endroit
 		u8 tile_val = bg_map[mod32(tile_offset_x++)];
+		// Si le mode est 1, le n° de motif est signé, sinon non signé
 		int tile_no = lcd_ctrl.tile_addr ? (u8)tile_val : (s8)tile_val;
-		u8 *tile_ptr = tile_data + tile_no * 16;
-		// Dessin du motif
-		draw_tile(pixel, bg_palette, tile_ptr);
+		// Dessin du motif (ajout du n° de tile * 16 octets par motif)
+		draw_tile(pixel, color_table, bg_palette, tile_data + tile_no * 16);
 		pixel += 8;
 	}
 }
 
-void win_render() {
+void win_render(u32 *pixel) {
 	// Position (transformée dans le repère écran) du premier pixel à traiter
 	int offset_x = REG(WX) - 7, offset_y = cur_line - REG(WY);
 	unsigned tile_offset_x = 0;
@@ -163,37 +190,41 @@ void win_render() {
 		mod8(offset_y) * 2;
 	u8 *bg_map = mem_vram + (lcd_ctrl.win_map_addr ? 0x1C00 : 0x1800) +
 		div8(offset_y) * 32;
-	// Commence au début de la fenêtre
-	u32 *pixel = lcd_buffer_line(cur_line) + offset_x;
+	u32 palette[4];
 	// Fenêtre désactivée ou ligne courante en dehors
 	if (!lcd_ctrl.win_en || offset_y < 0)
 		return;
+	// Commence au début de la fenêtre et laisse 8 pixels de libre à gauche
+	pixel = pixel + 8 - offset_x;
+	// La couleur 0 doit rester transparente mais remplacer le BG quand même
+	memcpy(palette, color_table, 4 * sizeof(u32));
+	palette[bg_palette[0]] = 0;
 	// Dessine jusqu'à la fin de la fenêtre (toujours tout à droite de l'écran)
 	while (offset_x < 160) {
-		// Si le mode est 1, le n° de tile est signé, sinon non signé
+		// Voir bg_render pour plus d'infos
 		u8 tile_val = bg_map[mod32(tile_offset_x++)];
-		int tile_no = lcd_ctrl.tile_addr ? (s8)tile_val : (u8)tile_val;
+		int tile_no = lcd_ctrl.tile_addr ? (u8)tile_val : (s8)tile_val;
 		u8 *tile_ptr = tile_data + tile_no * 16;
 		// Dessin + avancement de 8 pixels
-		draw_tile(pixel + offset_x, bg_palette, tile_ptr);
+		draw_tile_replace(pixel + offset_x, palette, bg_palette, tile_ptr);
 		offset_x += 8;
 	}
 }
 
-void obj_render(u8 skipped_prio) {
+void obj_render(u32 *pixel, u8 skipped_prio) {
 	// Liste d'attributs des sprites
 	obj_t *oam = (obj_t*)mem_oam;
 	// En mode 8x16 (obj_size=1), le dernier bit de la tile est ignoré
 	u8 obj_height = 8 + lcd_ctrl.obj_size * 8;
 	u8 tile_mask = ~lcd_ctrl.obj_size;
-	u32 *pixel = lcd_buffer_line(cur_line) - 8;
 	int i;
 	if (!lcd_ctrl.obj_en)			// Comme d'hab, fonction désactivée
 		return;
-	/*	Le système de priorités de la GB est très compliqué (il implique de
+	/*	Le système de priorités de la GB est très compliqué; il implique de
 		trier les sprites par position X. A la place on va émuler le système
 		comme sur la Game Boy Color (selon le n° de sprite, le premier ayant
-		la plus grosse priorité). Ca ne devrait pas poser trop de souci. */
+		la plus grosse priorité). Ca ne devrait pas poser de problème car
+		la Game Boy Color reste compatible avec la Game Boy malgré cela. */
 	for (i = 39; i >= 0; i--) {
 		// 4 octets par objet le décrivant (position, motif, etc.)
 		// Note: la GB soustrait 16 à la position y et 8 à la position x
@@ -205,10 +236,10 @@ void obj_render(u8 skipped_prio) {
 		u8 pattern[2];
 		if (attr.prio == skipped_prio)	// pas la priorité voulue
 			continue;
+		if (y >= obj_height)	// en fait le test devrait avoir || y < 0 mais
+			continue;			// comme y est non signé il revient à 255
 		if (x == 0 || x >= 168)			// invisible
 			continue;
-		if (y >= obj_height)	// en fait le test devrait avoir || y < 0 mais
-			continue;			// comme y est non signé donc on revient à 255
 		if (attr.flip_y)		// retournement vertical
 			y = obj_height - 1 - y;	
 		tile_ptr += y * 2;		// plus bas dans le motif
@@ -217,7 +248,7 @@ void obj_render(u8 skipped_prio) {
 		else
 			pattern[0] = tile_ptr[0], pattern[1] = tile_ptr[1];
 		// Finalement, dessine le motif
-		draw_tile(pixel + x, obj_palette[attr.pal_num], pattern);
+		draw_tile(pixel + x, color_table, obj_palette[attr.pal_num], pattern);
 	}
 }
 
@@ -235,7 +266,7 @@ void flip_tile(u8 *out, const u8 *in) {
 		(in[1] & 0x02) << 5 |  in[1] << 7;
 }
 
-void draw_tile(u32 *pixel, const u8 *palette, const u8 *tile_ptr) {
+void draw_tile(u32 *pixel, const u32 *color_table, const u8 *palette, const u8 *tile_ptr) {
 	unsigned j;
 	// Les pixels sont sur 2 plans: le premier octet indique le plan
 	// "foncé", le deuxième le plan "clair". Aucun = blanc, les 2 = noir.
@@ -248,6 +279,20 @@ void draw_tile(u32 *pixel, const u8 *palette, const u8 *tile_ptr) {
 	}
 }
 
+void draw_tile_replace(u32 *pixel, const u32 *color_table, const u8 *palette, const u8 *tile_ptr) {
+	unsigned j;
+	// Voir draw_tile pour plus d'infos
+	u8 pat1 = tile_ptr[0], pat2 = tile_ptr[1];
+	// Déroulage de boucle pour accélérer (partie critique)
+	for (j = 0; j < 2; j++) {
+		*pixel++ = color_table[palette[(pat2 & 0x80) >> 6 | (pat1 & 0x80) >> 7]];
+		*pixel++ = color_table[palette[(pat2 & 0x40) >> 5 | (pat1 & 0x40) >> 6]];
+		*pixel++ = color_table[palette[(pat2 & 0x20) >> 4 | (pat1 & 0x20) >> 5]];
+		*pixel++ = color_table[palette[(pat2 & 0x10) >> 3 | (pat1 & 0x10) >> 4]];
+		pat1 <<= 4, pat2 <<= 4;
+	}
+}
+
 void translate_palette(u8 *out, u8 reg) {
 	out[3] = reg >> 6 & 3;
 	out[2] = reg >> 4 & 3;
@@ -255,7 +300,7 @@ void translate_palette(u8 *out, u8 reg) {
 	out[0] = reg      & 3;
 }
 
-// KICKME: sooner the better
+// KICKME
 #ifdef WIN32
 	#include <windows.h>
 	HDC hdc = NULL;
@@ -302,7 +347,7 @@ void translate_palette(u8 *out, u8 reg) {
 			__int64 val;
 
 			for (i = 0; i < 144; i++) {
-				u32 *pixel = lcd_buffer_line(i);
+				u32 *pixel = lcd_buffer_line(i) + 8;
 				for (j = 0; j < 160; j++)
 					pix_data[(143 - i) * 256 + j] = *pixel++;
 			}
@@ -314,15 +359,6 @@ void translate_palette(u8 *out, u8 reg) {
 			while ((double)(val - last_val) / freq < 0.016666);
 			last_val += (__int64)(0.016666 * freq);
 		}
-
-/*		int i;
-		HDC hdc;
-		HWND hwnd = GetForegroundWindow();
-		u32 *pixel = lcd_buffer_line(cur_line);
-		hdc = GetDC(hwnd);
-		for (i = 0; i < 160; i++)
-			SetPixel(hdc, i, cur_line, *pixel++ & 0xffffff);
-		ReleaseDC(hwnd, hdc);*/
 	}
 #else
 	void temp_render_to_screen() {}

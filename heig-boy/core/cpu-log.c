@@ -22,7 +22,9 @@ void cpu_init() {
 	fread(&next_record, sizeof(record_t), 1, log_file);
 }
 
-int cpu_exec_instruction() {
+void cpu_trigger_irq(cpu_interrupt_t irq) {}
+
+unsigned cpu_exec_instruction() {
 	// Fait "avancer le temps"
 	cycle_counter += 4;
 	// L'événement arrive
