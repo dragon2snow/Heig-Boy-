@@ -2,22 +2,34 @@
 #include "mem.h"
 #include "debug.h"
 #include <stdio.h>		// temp
+#include <string.h>		// memcpy
 
-/** Registres du processeur (BC, DE, HL, AF dans cet ordre) */
-static u8 registers[8];
+/** Registres du processeur (BC, DE, HL, AF dans cet ordre), par paire */
+#ifdef LITTLE_ENDIAN
+	// Little endian: octet de poids faible puis de poids fort
+	typedef union {
+		// Exemple, BC: lo=C, hi=B, word=BC
+		struct { u8 lo, hi; };
+		u16 word;
+	} register_pair_t;
+#else
+	// Big endian: octet de poids fort puis de poids faible
+	// TODO à tester sur un processeur big endian
+	typedef union {
+		// Exemple, BC: lo=C, hi=B, word=BC
+		struct { u8 hi, lo; };
+		u16 word;
+	} register_pair_t;
+#endif
+
+/** Les registres */
+register_pair_t registers[4];
+/** Pile et instruction courante (program counter) */
 u16 SP, PC;
-/* IME = interrupt master enable, halt = cpu en pause (attend une IRQ) */
+
+/** IME = interrupt master enable, halt = cpu en pause (attend une IRQ) */
 static u8 IME, halted;
-// Index des registres dans le tableau (simples & paires) 
-enum {R_B = 0, R_C, R_D, R_E, R_H, R_L, R_A, R_F};
-enum {R_BC = 0, R_DE, R_HL, R_AF};
-/** Flags (R_F)
-  Bit  Name  Set Clr  Expl.
-  7    zf    Z   NZ   Zero Flag
-  6    n     -   -    Add/Sub-Flag (BCD)
-  5    h     -   -    Half Carry Flag (BCD)
-  4    cy    C   NC   Carry Flagenum */
-enum {F_C = BIT(4), F_H = BIT(5), F_N = BIT(6), F_Z = BIT(7)};
+
 /** Méthodes de rotation; que faire avec le bit libéré (représenté par un b):
 	00000000 >> 1 = b0000000 ou 0000000 << 1 = 0000000b
 	* RM_SA, arithmetic shift:
@@ -31,23 +43,46 @@ enum {F_C = BIT(4), F_H = BIT(5), F_N = BIT(6), F_Z = BIT(7)};
 */
 typedef enum {RM_SA = 0, RM_SL, RM_RC, RM_R} rotate_method_t;
 
-/** Pour une utilisation plus simple */
-#define accu registers[R_A]
-#define flags registers[R_F]
-// Accumulateur et (HL) encodés dans une opérande de type rrr (cf. Z80.DOC)
+/** Index des registres dans le tableau (paires) */
+enum {R_BC = 0, R_DE, R_HL, R_AF};
+
+/** Définition des flags, cf. pandocs.
+	Bit  Name  Set Clr  Expl.
+	7    zf    Z   NZ   Zero Flag
+	6    n     -   -    Add/Sub-Flag (BCD)
+	5    h     -   -    Half Carry Flag (BCD)
+	4    cy    C   NC   Carry Flagenum
+*/
+typedef struct {
+	u8 unused: 4;
+	u8 carry: 1, halfcarry: 1, n: 1, zero: 1;
+} flags_t;
+
+/** Pas très propre, mais permet une bien meilleure compréhension du code
+	source. */
+#define accu	registers[R_AF].hi
+#define flags	(*(flags_t*)(&registers[R_AF].lo))
+#define B		registers[R_BC].hi
+#define C		registers[R_BC].lo
+#define D		registers[R_DE].hi
+#define E		registers[R_DE].lo
+#define H		registers[R_HL].hi
+#define L		registers[R_HL].lo
+
+#define BC		registers[R_BC].word
+#define DE		registers[R_DE].word
+#define HL		registers[R_HL].word
+#define AF		registers[R_AF].word
+
+/** Accumulateur et (HL) encodés dans une opérande de type rrr (cf. Z80.DOC) */
 #define OP_R_HL   6
 #define OP_R_ACCU 7
 
-/** Manipulations sur les flags */
-#define flag_set(flag)		(flags |= flag)
-#define flag_clear(flag)	(flags &= ~(flag))
-#define flag_test(flag)		(flags & (flag))
-
-/** Lit une paire de registres
-	\param index une des constantes R_BC, R_DE ou R_HL */
-static u16 read_pair(u16 index);
-/** Ecrit une paire de registres */
-static void write_pair(u16 index, u16 value);
+/** Décode un n° de registre 8 bits et renvoie un pointeur sur celui-ci.
+	\param index opérande 3 bits de type rrr (cf. Z80.DOC).
+	\note La valeur 6, (hl) n'est pas permise!
+*/
+static u8 *op_r_decode(u16 index);
 /** Décode un n° de registre d'un opcode et lit le registre correspondant.
 	\param index opérande 3 bits de type rrr (cf. Z80.DOC).
 */
@@ -97,11 +132,6 @@ static void accu_write(int val);
 	\return 0 si la condition est fausse, autre valeur sinon
 */
 static bool condition_test(u8 operand);
-/** Réalise une addition 16 bits et met à jour les flags.
-	\param pair paire de registres à affecter
-	\param value nombre 16 bits à additionner
-*/
-static void add16(u8 pair, u16 value);
 /** Empile PC puis saute à une adresse absolue.
 	\param address adresse où sauter.
 */
@@ -128,10 +158,11 @@ static void op_rotate_left(u8 index, rotate_method_t method);
 static void op_rotate_right(u8 index, rotate_method_t method);
 
 void cpu_init() {
-	write_pair(R_AF, 0x01B0);
-	write_pair(R_BC, 0x0013);
-	write_pair(R_DE, 0x00D8);
-	write_pair(R_HL, 0x0013);
+	// Etat initial de la console
+	AF = 0x01B0;
+	BC = 0x0013;
+	DE = 0x00D8;
+	HL = 0x0013;
 	SP = 0xFFFE;
 	PC = 0x0100;
 	IME = 0;		// sûr?
@@ -143,9 +174,28 @@ void cpu_trigger_irq(cpu_interrupt_t int_no) {
 	REG(IF) |= BIT(int_no);
 }
 
-/*static void print_regs() {
-	printf("af: %04x bc: %04x de: %04x hl: %04x sp: %04x pc: %04x\n", read_pair(R_AF), read_pair(R_BC), read_pair(R_DE), read_pair(R_HL), SP, pcdeb);
-}*/
+unsigned cpu_get_state(u8 *buffer) {
+	// Sauvegarde des registres dans un buffer
+	memcpy(buffer, registers, sizeof(registers));
+	buffer += sizeof(registers);
+	*buffer++ = SP & 0xff;
+	*buffer++ = SP >> 8;
+	*buffer++ = PC & 0xff;
+	*buffer++ = PC >> 8;
+	*buffer++ = IME;
+	*buffer++ = halted;
+	return sizeof(registers) + 6;
+}
+
+void cpu_set_state(const u8 *buffer) {
+	// Restoration des registres depuis le buffer
+	memcpy(registers, buffer, sizeof(registers));
+	buffer += sizeof(registers);
+	SP = buffer[0] | buffer[1] << 8;
+	PC = buffer[2] | buffer[3] << 8;
+	IME = buffer[4];
+	halted = buffer[5];
+}
 
 unsigned cpu_exec_instruction() {
 	u8 opcode, upper_digit, mid_digit, low_digit;
@@ -153,7 +203,7 @@ unsigned cpu_exec_instruction() {
 	int temp, temp_len;
 
 	// Interruptions en attente?
-	if (IME && (REG(IF) & REG(IE))) {
+	if ((IME || halted) && (REG(IF) & REG(IE))) {
 		int i;
 		// Teste les bits actifs
 		for (i = 0; i < INT_LAST; i++) {
@@ -168,7 +218,6 @@ unsigned cpu_exec_instruction() {
 			}
 		}
 	}
-
 	// Au repos, rien à faire
 	if (halted)
 		return 1;
@@ -185,19 +234,19 @@ unsigned cpu_exec_instruction() {
 			return 1;
 		// GMB 8-bit load commands
 		case 0x0a:		// ld a, (bc)
-			accu = mem_readb(read_pair(R_BC));
+			accu = mem_readb(BC);
 			return 2;
 		case 0x1a:		// ld a, (de)
-			accu = mem_readb(read_pair(R_DE));
+			accu = mem_readb(DE);
 			return 2;
 		case 0xfa:		// ld a, (nn)
 			accu = mem_readb(pc_readw());
 			return 4;
 		case 0x02:		// ld (bc), a
-			mem_writeb(read_pair(R_BC), accu);
+			mem_writeb(BC, accu);
 			return 2;
 		case 0x12:		// ld (de), a
-			mem_writeb(read_pair(R_DE), accu);
+			mem_writeb(DE, accu);
 			return 2;
 		case 0xea:		// ld (nn), a
 			mem_writeb(pc_readw(), accu);
@@ -213,94 +262,83 @@ unsigned cpu_exec_instruction() {
 			mem_writew(pc_readw(), SP);
 			return 5;
 		case 0xf2:		// ldh a, (c)
-			accu = mem_readb(0xff00 + registers[R_C]);
+			accu = mem_readb(0xff00 + C);
 			return 2;
 		case 0xe2:		// ldh (c), a
-			mem_writeb(0xff00 + registers[R_C], accu);
+			mem_writeb(0xff00 + C, accu);
 			return 2;
-		case 0x22: {	// ld (hl+), a
-			u16 hl = read_pair(R_HL);
-			mem_writeb(hl, accu);
-			write_pair(R_HL, hl + 1);
+		case 0x22: 		// ld (hl+), a
+			mem_writeb(HL++, accu);
 			return 2;
-		}
-		case 0x2a: {	// ld a, (hl+)
-			u16 hl = read_pair(R_HL);
-			accu = mem_readb(hl);
-			write_pair(R_HL, hl + 1);
+		case 0x2a:		// ld a, (hl+)
+			accu = mem_readb(HL++);
 			return 2;
-		}
-		case 0x32: {	// ld (hl-), a
-			u16 hl = read_pair(R_HL);
-			mem_writeb(hl, accu);
-			write_pair(R_HL, hl - 1);
+		case 0x32:		// ld (hl-), a
+			mem_writeb(HL--, accu);
 			return 2;
-		}
-		case 0x3a: {	// ld a, (hl-)
-			u16 hl = read_pair(R_HL);
-			accu = mem_readb(hl);
-			write_pair(R_HL, hl - 1);
+		case 0x3a:		// ld a, (hl-)
+			accu = mem_readb(HL--);
 			return 2;
-		}
+
 		// GMB 16-bit load commands
 		case 0xf9:		// ld sp, hl
-			SP = read_pair(R_HL);
+			SP = HL;
 			return 2;
+
 		// GMB 8-bit arithmetic / logical commands
 		case 0x27: {	// daa: http://www.geocities.com/siliconvalley/peaks/3938/z80syntx.htm#DAA
 			// Dernière op.: addition ou soustraction?
-			s8 direction = flag_test(F_N) ? -1 : 1;
-			u8 old_flags = flags;
-			flag_clear(F_H | F_C | F_Z);
+			s8 direction = flags.n ? -1 : 1;
 			// Exemple: 0x8 + 0x3 = 0xb -> 0x11 (+6)
-			if ((old_flags & F_H) || (accu & 0xf) >= 0xa)
+			if (flags.halfcarry || (accu & 0xf) >= 0xa)
 				accu += direction * 0x06;
 			// Pareil pour le digit du haut
-			if ((old_flags & F_C) || (accu & 0xf0) >= 0xa0) {
+			if (flags.carry || (accu & 0xf0) >= 0xa0) {
 				accu += direction * 0x60;
-				flag_set(F_C);
+				flags.carry = 1;
 			}
-			if (accu == 0)
-				flag_set(F_Z);
+			flags.halfcarry = 0;
+			flags.zero = (accu == 0);
 			return 1;
 		}
 		case 0x2f:		// cpl - complément à un
 			accu = ~accu;
-			flag_set(F_N | F_H);
+			flags.n = flags.halfcarry = 1;
 			return 1;
+
 		// GMB 16-bit arithmetic / logical commands
 		case 0xe8:		// add sp, (signed)n
 			SP = op_add_sp_n();
 			return 4;
 		case 0xf8:		// ld hl, sp+(signed)n
-			write_pair(R_HL, op_add_sp_n());
+			HL = op_add_sp_n();
 			return 3;
 
 		// GMB rotate and shift commands
 		case 0x07:		// rlca - a <<= 1
 			op_rotate_left(OP_R_ACCU, RM_R);
-			flag_clear(F_Z);
+			flags.zero = 0;
 			return 1;
 		case 0x17:		// rla - a=(a<<1)+cy
 			op_rotate_left(OP_R_ACCU, RM_RC);
-			flag_clear(F_Z);
+			flags.zero = 0;
 			return 1;
 		case 0x0f:		// rrca - a >>= 1
 			op_rotate_right(OP_R_ACCU, RM_R);
-			flag_clear(F_Z);
+			flags.zero = 0;
 			return 1;
 		case 0x1f:		// rla - a=(a>>1)+cy (en bit 7)
 			op_rotate_right(OP_R_ACCU, RM_RC);
-			flag_clear(F_Z);
+			flags.zero = 0;
 			return 1;
 		// GMB control commands
 		case 0x3f:		// ccf - cy=cy xor 1
-			flag_clear(F_N | F_H);
-			flags ^= F_C;
+			flags.n = flags.halfcarry = 0;
+			flags.carry = flags.carry ^ 1;
 			return 1;
 		case 0x37:		// scf - cy=1
-			flag_clear(F_N | F_H);
-			flag_set(F_C);
+			flags.n = flags.halfcarry = 0;
+			flags.carry = 1;
 			return 1;
 		case 0x76:		// halt
 			halted = 1;
@@ -319,7 +357,7 @@ unsigned cpu_exec_instruction() {
 			PC = pc_readw();
 			return 4;
 		case 0xe9:		// jp hl
-			PC = read_pair(R_HL);
+			PC = HL;
 			return 1;
 		case 0x18: {	// jr nn
 			s8 offset = (s8)pc_readb();
@@ -375,7 +413,17 @@ unsigned cpu_exec_instruction() {
 					}
 					// 00 dd1 001 -> add hl, dd
 					else {
-						add16(R_HL, op_dd_read(mid_digit >> 1));
+						// Addition de 2 registres 16 bits (HL + dd)
+						u16 value = op_dd_read(mid_digit >> 1);
+						u32 result = HL + value;
+						// Affectation des flags
+						flags.n = 0;
+						flags.carry = (result >= 65536);	// Dépassement?
+						// Calcule le half carry sur les 8 bits du dessus
+						flags.halfcarry =
+							((HL >> 8 & 0xf) + (value >> 8 & 0xf) >= 0x10);
+						// Résultat: conservation des 16 bits du bas
+						HL = (u16)result;
 						return 2;
 					}
 					break;
@@ -390,27 +438,28 @@ unsigned cpu_exec_instruction() {
 				case 5: {
 					// 00 rrr 10o -> inc r si o=0, dec r sinon
 					u8 result = op_r_read(mid_digit);
-					flags &= F_C;		// seul flag non affecté
 					if (opcode & 1) {	// dec r
 						result--;
-						if ((result & 0xf) == 0xf)	// half carry
-							flag_set(F_H);
-						flag_set(F_N);
+						// Halfcarry si passage d'une dizaine à la précédente.
+						// Ex: 20 -> 1f. Donc le dernier digit est f.
+						flags.halfcarry = ((result & 0xf) == 0xf);
+						flags.n = 1;
 					}
 					else {				// inc r
 						result++;
-						if ((result & 0xf) == 0)	// half carry (changement de dizaine)
-							flag_set(F_H);
+						// Même mécanisme que pour dec, voir plus haut.
+						// 1f -> 20 = changement de dizaine.
+						flags.halfcarry = ((result & 0xf) == 0);
+						flags.n = 0;
 					}
 					op_r_write(mid_digit, result);
-					if (result == 0)
-						flag_set(F_Z);
+					flags.zero = (result == 0);
 					return 1;
 				}
 				case 6:
 					// 00 rrr 110 [nn] -> ld r, n
 					op_r_write(mid_digit, pc_readb());
-					return mid_digit == OP_R_HL ? 3 : 2;		// (hl)
+					return mid_digit == OP_R_HL ? 3 : 2;		// (hl) + lent
 			}
 			break;
 
@@ -482,56 +531,53 @@ unsigned cpu_exec_instruction() {
 	return 1;
 }
 
-u16 read_pair(u16 index)
-{
-	index = (index & 3) << 1;		// modulo 4 paires, fois 2 octets
-	return registers[index + 1] | registers[index] << 8;
-}
-
-void write_pair(u16 index, u16 value) {
-	index = (index & 3) << 1;		// modulo 4 paires, fois 2 octets
-	registers[index + 1] = value & 0xff;
-	registers[index] = value >> 8 & 0xff;
+u8 *op_r_decode(u16 index) {
+	switch (index) {
+		case 0:  return &B;
+		case 1:  return &C;
+		case 2:  return &D;
+		case 3:  return &E;
+		case 4:  return &H;
+		case 5:  return &L;
+		case 7:  return &accu;
+		default: return 0L;		// (hl) et autres interdits!
+	}
 }
 
 u8 op_r_read(u16 index) {
-	if (index == OP_R_HL)
-		return mem_readb(read_pair(R_HL));
-	else if (index == OP_R_ACCU)
-		return accu;
-	else
-		return registers[index & 7];
+	if (index == OP_R_HL)		// (hl)
+		return mem_readb(HL);
+	else						// registre habituel
+		return *op_r_decode(index);
 }
 
 void op_r_write(u16 index, u8 value) {
-	if (index == OP_R_HL)
-		mem_writeb(read_pair(R_HL), value);
-	else if (index == OP_R_ACCU)
-		accu = value;
+	if (index == OP_R_HL)		// (hl)
+		mem_writeb(HL, value);
 	else
-		registers[index & 7] = value;
+		*op_r_decode(index) = value;
 }
 
 u16 op_dd_read(u16 index) {
 	if (index == 3)
 		return SP;
 	else
-		return read_pair(index);
+		return registers[index].word;
 }
 
 void op_dd_write(u16 index, u16 value) {
 	if (index == 3)
 		SP = value;
 	else
-		write_pair(index, value);
+		registers[index].word = value;
 }
 
 u16 op_qq_read(u16 index) {
-	return read_pair(index);
+	return registers[index].word;
 }
 
 void op_qq_write(u16 index, u16 value) {
-	write_pair(index, value);
+	registers[index].word = value;
 }
 
 u8 pc_readb() {
@@ -545,36 +591,20 @@ u16 pc_readw() {
 }
 
 void accu_write(int val) {
-	flag_clear(F_C | F_Z);
-	if (val == 0)		// Z si résultat nul
-		flag_set(F_Z);
-	if (val & ~0xff)	// C si débordement (bits autres que les 8 du registre)
-		flag_set(F_C);
+	// C si débordement (bits autres que les 8 du registre)
+	flags.carry = ((val & ~0xff) != 0);
 	accu = val & 0xff;
+	// Z si résultat nul
+	flags.zero = (accu == 0);
 }
 
 bool condition_test(u8 operand) {
-	// Le bit du haut de l'opérande cc contient le flag à tester (Z, C).
+	// Le bit du haut de l'opérande cc contient le flag à tester (0 = Z, 1 = C).
 	// Le bit du bas indique si il doit être vrai ou faux (1, 0).
-	const u8 flag_table[2] = {F_Z, F_C};
-	// Teste le bit demandé (result = 1 s'il est mis)
-	u8 result = flag_test(flag_table[(operand & 2) >> 1]) ? 1 : 0;
-	// Si l'état du flag testé correspond au test (bit du bas), la
-	// condition est vérifiée
-	return result == (operand & 1);
-}
-
-void add16(u8 pair, u16 value) {
-	u16 source = read_pair(pair);
-	u32 result = source + value;
-	write_pair(pair, result);
-	// Affectation des flags
-	flag_clear(F_H | F_C | F_N);
-	if (result >= 65536)
-		flag_set(F_C);
-	// Calcule le half carry sur les 8 bits du dessus
-	if ((source >> 8 & 0xf) + (value >> 8 & 0xf) >= 0x10)
-		flag_set(F_H);
+	if (operand & 2)	// [N]C
+		return flags.carry == (operand & 1);
+	else				// [N]Z
+		return flags.zero == (operand & 1);
 }
 
 void call(u16 address) {
@@ -585,21 +615,20 @@ void call(u16 address) {
 
 u16 op_add_sp_n() {
 	int result = SP + (s8)pc_readb();
-	flags = 0;
-	if (result & 0x10000)		// overflow -> carry
-		flag_set(F_C);
+	flags.zero = flags.n = 0;
+	flags.carry = ((result & 0x10000) != 0);	// overflow -> carry
 	// Si le bit 12 a changé (bit 4 des 8 hauts bits) -> H set
-	if ((SP ^ result) & 0x1000)
-		flag_set(F_H);
+	flags.halfcarry = (((SP ^ result) & 0x1000) != 0);
 	return (u16)result;
 }
 
 void op_rotate_left(u8 index, rotate_method_t method) {
 	u8 val = op_r_read(index);
-	u8 carry_bit = flag_test(F_C) ? 1 : 0;
-	flags = 0;
-	if (val & 0x80)		// provoquera la perte du dernier bit?
-		flag_set(F_C);
+	u8 carry_bit = flags.carry ? 1 : 0;
+	// Les flags sont tous affectés par cette instruction
+	flags.n = flags.halfcarry = 0;
+	// Provoquera la perte du dernier bit? -> Carry
+	flags.carry = ((val & 0x80) != 0);
 	switch (method) {
 		case RM_R:
 			val = val << 1 | val >> 7;
@@ -614,18 +643,18 @@ void op_rotate_left(u8 index, rotate_method_t method) {
 			val = val << 1 | 1;
 			break;
 	}
-	// FIXME Z mis aussi si index == OP_R_ACCU, pas bien?
-	if (val == 0)
-		flag_set(F_Z);
+	// Flag zéro (résultat nul, comme d'habitude)
+	flags.zero = (val == 0);
 	op_r_write(index, val);
 }
 
 void op_rotate_right(u8 index, rotate_method_t method) {
 	u8 val = op_r_read(index);
-	u8 carry_bit = flag_test(F_C) ? 0x80 : 0;
-	flags = 0;
-	if (val & 0x01)		// provoquera la perte du dernier bit?
-		flag_set(F_C);
+	u8 carry_bit = flags.carry ? 0x80 : 0;
+	// Les flags sont tous affectés par cette instruction
+	flags.n = flags.halfcarry = 0;
+	// Provoquera la perte du dernier bit? -> Carry
+	flags.carry = ((val & 0x01) != 0);
 	switch (method) {
 		case RM_R:
 			val = val >> 1 | val << 7;
@@ -640,9 +669,8 @@ void op_rotate_right(u8 index, rotate_method_t method) {
 			val >>= 1;
 			break;
 	}
-	// FIXME Z mis aussi si index == OP_R_ACCU, pas bien?
-	if (val == 0)
-		flag_set(F_Z);
+	// Flag zéro
+	flags.zero = (val == 0);
 	op_r_write(index, val);
 }
 
@@ -650,54 +678,55 @@ void op_arithmetic(u8 operation, u8 operand) {
 	u16 operand16 = operand;
 	switch (operation) {
 		case 1:			// adc: A=A+n+cy (cy = 1 si F_C, 0 sinon)
-			if (flag_test(F_C))
+			if (flags.carry)
 				operand16++;
 			// continue sur l'addition normale avec une opérande à additionner
 			// éventuellement plus élevée
 		case 0:			// add: A=A+n
-			flags = 0;		// Cette instruction affecte tous les flags
+			// Type addition
+			flags.n = 0;
 			// Calcule le half-carry (retenue sur les 4 bits du bas)
-			if ((accu & 0xf) + (operand16 & 0xf) >= 0x10)
-				flag_set(F_H);
+			flags.halfcarry =
+				((accu & 0xf) + (operand16 & 0xf) >= 0x10);
 			// Puis l'addition
 			accu_write(accu + operand16);
 			break;
 
 		case 3:			// sbc: A=A-n-cy
 			// Même mécanisme que pour add/adc
-			if (flag_test(F_C))
-				operand16--;
+			if (flags.carry)
+				operand16++;
 		case 2:			// sub: A=A-n
-			flags = F_N;
-			if ((s8)(accu & 0xf) - (s8)(operand16 & 0xf) < 0)
-				flag_set(F_H);
+			// Type soustraction
+			flags.n = 1;
+			flags.halfcarry =
+				((s8)(accu & 0xf) - (s8)(operand16 & 0xf) < 0);
 			accu_write(accu - operand16);
 			break;
 		
 		// Opérations logiques
 		case 4:			// and: A=A&n
-			flags = F_H;
+			flags.n = 0;
+			flags.halfcarry = 1;
 			accu_write(accu & operand);
 			break;
 		case 5:			// xor: A=A^n
-			flags = 0;
+			flags.n = flags.halfcarry = 0;
 			accu_write(accu ^ operand);
 			break;
 		case 6:			// or: A=A|n
-			flags = 0;
+			flags.n = flags.halfcarry = 0;
 			accu_write(accu | operand);
 			break;
 
 		case 7:			// cp: compare A-n - flags: z1hc
 		{	int result = accu - operand;
-			flags = F_N;
-			if (result == 0)
-				flag_set(F_Z);
+			flags.n = 1;
 			// Je suis vraiment pas sûr que le halfcarry est affecté comme ça
-			if ((s8)(accu & 0xf) - (s8)(operand & 0xf) < 0)
-				flag_set(F_H);
-			if (result < 0)
-				flag_set(F_C);
+			flags.halfcarry =
+				((s8)(accu & 0xf) - (s8)(operand & 0xf) < 0);
+			flags.zero = (result == 0);
+			flags.carry = (result < 0);
 			break;
 		}
 	}
