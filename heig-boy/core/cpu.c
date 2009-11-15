@@ -211,6 +211,8 @@ unsigned cpu_exec_instruction() {
 	u8 opcode, upper_digit, mid_digit, low_digit;
 	char temp_name[256];
 	int temp, temp_len;
+//	static FILE *f = NULL;
+//	static int instId = 0;
 
 	// Interruptions en attente?
 	if ((IME || halted) && (REG(IF) & REG(IE))) {
@@ -231,6 +233,14 @@ unsigned cpu_exec_instruction() {
 	// Au repos, rien à faire
 	if (halted)
 		return 1;
+
+/*	if (instId == 111545)
+		instId = instId;
+
+	cpu_disassemble(PC, temp_name, &temp_len, &temp);
+	if (!f)
+		f = fopen("C:\\shit-ours.log", "w");
+	fprintf(f, "%i %04x %02x %s\n", instId++, accu, PC, temp_name);*/
 
 	// Décodage de l'opcode
 	opcode = pc_readb();
@@ -292,9 +302,24 @@ unsigned cpu_exec_instruction() {
 			return 2;
 		// GMB 8-bit arithmetic / logical commands
 		case 0x27:		// daa
-			// c'est la merde =)=)=)=)
-			dbg_error("Unimplemented DAA");
+		{
+			// n = dernière opération: 1=soustraction, 0=addition
+			if ((accu & 0xf) >= 0xa || flags.halfcarry) {
+				accu += flags.n ? -6 : 6;
+				flags.halfcarry ^= 1;
+			}
+			else
+				flags.halfcarry = 0;
+			// Pareil pour le digit du bas
+			if ((accu & 0xf0) >= 0xa0 || flags.carry) {
+				accu += flags.n ? -0x60 : 0x60;
+				flags.carry ^= 1;
+			}
+			else
+				flags.carry = 0;
+			flags.zero = (accu == 0);
 			return 1;
+		}
 		case 0x2f:		// cpl
 			accu = ~accu;
 			return 1;
@@ -482,19 +507,23 @@ unsigned cpu_exec_instruction() {
 					// PAS SUR!! 11 0cc 010 [nn nn] -> jp cc, nn
 					// Le bit 2 de c est ignoré! Comment sur GB?
 					if ((opcode & 040) == 0) {
+						u16 offset = pc_readw();
 						if (condition_test(mid_digit)) {
-							PC = pc_readw();
+							PC = offset;
 							return 4;
 						}
 						return 3;
 					}
 					break;
 				case 4:		// 11 ccc 100 [nn] -> call cc, nn
+				{
+					u16 offset = pc_readw();
 					if (condition_test(mid_digit)) {
-						call(pc_readw());
+						call(offset);
 						return 6;
 					}
 					return 3;
+				}
 				case 5:
 					// 11 qq0 101 -> push qq (qq est une paire de registres)
 					if ((opcode & 010) == 0) {
@@ -775,7 +804,7 @@ unsigned op_cb_exec() {
 				case 6:		// swap
 					// Le digit du bas passe en haut et inversément
 					op_r_write(operand,
-						(reg & 0xf << 4) | (reg & 0xf0 >> 4));
+						(reg & 0xf) << 4 | (reg & 0xf0) >> 4);
 					break;
 				case 7:		// srl
 					op_rotate_right(operand, RM_SL);
@@ -784,7 +813,7 @@ unsigned op_cb_exec() {
 			return operand == OP_R_HL ? 4 : 2;
 
 		case 1:		// 01 bbb rrr -> bit b, r (teste le bit b de r)
-			flags.zero = (operand & BIT(mid_digit)) == 0;
+			flags.zero = (reg & BIT(mid_digit)) == 0;
 			flags.n = 0;
 			flags.halfcarry = 1;
 			return operand == OP_R_HL ? 3 : 2;
