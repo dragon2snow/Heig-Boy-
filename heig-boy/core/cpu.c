@@ -211,8 +211,7 @@ unsigned cpu_exec_instruction() {
 	u8 opcode, upper_digit, mid_digit, low_digit;
 	char temp_name[256];
 	int temp, temp_len;
-//	static FILE *f = NULL;
-//	static int instId = 0;
+	static FILE *f = NULL;
 
 	// Interruptions en attente?
 	if ((IME || halted) && (REG(IF) & REG(IE))) {
@@ -234,13 +233,10 @@ unsigned cpu_exec_instruction() {
 	if (halted)
 		return 1;
 
-/*	if (instId == 111545)
-		instId = instId;
-
-	cpu_disassemble(PC, temp_name, &temp_len, &temp);
+/*	cpu_disassemble(PC, temp_name, &temp_len, &temp);
 	if (!f)
 		f = fopen("C:\\shit-ours.log", "w");
-	fprintf(f, "%i %04x %02x %s\n", instId++, accu, PC, temp_name);*/
+	fprintf(f, "%i %04x %s\n", cycleCount, PC, temp_name);*/
 
 	// Décodage de l'opcode
 	opcode = pc_readb();
@@ -402,13 +398,14 @@ unsigned cpu_exec_instruction() {
 	switch (upper_digit) {
 		case 1:		// 01 rrr sss -> ld r, s
 			op_r_write(mid_digit, op_r_read(low_digit));
-			return low_digit == OP_R_HL ? 2 : 1;	// (hl) plus lent
+			// (hl) plus lent
+			return (low_digit == OP_R_HL || mid_digit == OP_R_HL) ? 2 : 1;
 
 		case 2:		// 10 ooo rrr -> ooo a, r (opération arithmétique)
 			op_arithmetic(mid_digit, op_r_read(low_digit));
 			// Toutes les opérations arithmétiques sur un registre prennent 1
 			// cycle, ou 2 si l'opérande est (HL)
-			return mid_digit == OP_R_HL ? 2 : 1;
+			return low_digit == OP_R_HL ? 2 : 1;
 
 		case 0:		// 00 xxx xxx (l'opération dépend des bits du bas)
 			switch (low_digit) {
@@ -803,8 +800,9 @@ unsigned op_cb_exec() {
 					break;
 				case 6:		// swap
 					// Le digit du bas passe en haut et inversément
-					op_r_write(operand,
-						(reg & 0xf) << 4 | (reg & 0xf0) >> 4);
+					reg = (reg & 0xf) << 4 | (reg & 0xf0) >> 4;
+					op_r_write(operand, reg);
+					flags.zero = (reg == 0);
 					break;
 				case 7:		// srl
 					op_rotate_right(operand, RM_SL);
