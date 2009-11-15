@@ -141,6 +141,18 @@ typedef enum {
 */
 void cpu_trigger_irq(cpu_interrupt_t int_no);
 
+/** Récupère les valeurs des registres du CPU dans un tampon (y.c statut).
+	\param buffer tampon d'au moins 14 octets (8 registres + SP, HL, IME, HALT)
+	\note Utilisé pour la sauvegarde d'état.
+*/
+unsigned cpu_get_state(u8 *buffer);
+
+/** Définit les valeurs des registres du CPU depuis un tampon récupéré avec
+	#cpu_get_regs (y.c. statut, IME, etc.).
+	\param buffer tampon de 14 octets (voir #cpu_get_state)
+*/
+void cpu_set_state(const u8 *buffer);
+
 /** Decode (désassemble) une instruction.
 	\param address adresse du bus où lire l'instruction
 	\param name [out] chaîne contenant l'instruction décodée
@@ -150,7 +162,11 @@ void cpu_trigger_irq(cpu_interrupt_t int_no);
 		Game Boy) requis pour l'exécution de l'instruction
 */
 void cpu_disassemble(u16 address, char *name, int *length, int *cycles);
+
 /** Affiche une instruction (formatée) */
 void cpu_print_instruction(u16 address);
+
+/** Activer ceci sur un processeur little endian (comme l'Intel x86/x64 cible) */
+#define LITTLE_ENDIAN
 
 #endif

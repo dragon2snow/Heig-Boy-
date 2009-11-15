@@ -182,7 +182,11 @@
 				Name="core"
 				>
 				<File
-					RelativePath=".\core\cpu-mine.c"
+					RelativePath=".\core\color_it.c"
+					>
+				</File>
+				<File
+					RelativePath=".\core\cpu.c"
 					>
 				</File>
 				<File
@@ -218,6 +222,10 @@
 					>
 				</File>
 				<File
+					RelativePath=".\core\save.c"
+					>
+				</File>
+				<File
 					RelativePath=".\core\sound.c"
 					>
 				</File>
@@ -247,6 +255,10 @@
 			<Filter
 				Name="core"
 				>
+				<File
+					RelativePath=".\core\color_it.h"
+					>
+				</File>
 				<File
 					RelativePath=".\core\common.h"
 					>
@@ -281,6 +293,10 @@
 				</File>
 				<File
 					RelativePath=".\core\ports.h"
+					>
+				</File>
+				<File
+					RelativePath=".\core\save.h"
 					>
 				</File>
 				<File

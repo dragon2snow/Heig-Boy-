@@ -17,6 +17,24 @@ static u32 rom_size, ram_size;
 // connectée au CPU. Celle-ci est dans la cartouche (externe).
 static u8 ram_data[0x8000];
 
+/** Définit la banque ROM courante en faisant attention à ne pas dépasser
+	de l'image ROM chargée.
+	\param bank_no n° de banque (1 banque = 16 ko)
+*/
+static void set_rom_bank(u8 bank_no) {
+	// FIXME modulo et division lentes
+	params.rom_bank = bank_no % (rom_size / 0x4000);
+}
+
+/** Définit la banque RAM courante.
+	\param bank_no n° de banque (1 banque = 8 ko)
+*/
+static void set_ram_bank(u8 bank_no) {
+	// FIXME modulo et division lentes
+	if (ram_size >= 0x2000)		// Eviter le modulo zéro
+		params.ram_bank = bank_no % (ram_size / 0x2000);
+}
+
 // Lecture directe, pas de MBC
 static u8 direct_read(u16 address) {
 	return mem_rom[address];
@@ -40,14 +58,8 @@ void mbc_sram_write(u16 address, u8 value) {
 static u8 mbc1_read(u16 address) {
 	if (address < 0x4000)
 		return mem_rom[address];
-	else {
-		// Pour une question de rapidité, ce check devrait se faire au
-		// changement de banque seulement...
-		u32 addr = params.rom_bank * 0x4000 + (address & 0x3fff);
-		if (addr >= rom_size)		// En dehors de la ROM allouée
-			return 0xff;
-		return mem_rom[addr];
-	}
+	else		// Tient compte de la banque
+		return mem_rom[params.rom_bank * 0x4000 + (address & 0x3fff)];
 }
 
 static void mbc1_write(u16 address, u8 value) {
@@ -59,15 +71,15 @@ static void mbc1_write(u16 address, u8 value) {
 			if (value == 0)			// cf pandocs
 				value++;
 			params.rom_bank &= ~31;		// Remplace les bits du bas
-			params.rom_bank |= value & 0x1f;
+			set_rom_bank(params.rom_bank | (value & 31));
 			break;
 		case 0x2:		// 4000-5FFF: ROM bank number - upper 2 bits
 			if (params.bank_mode == 0) {		// Sélection banque ROM
-				params.rom_bank &= 31;
-				params.rom_bank |= (value & 3) << 5;
+				params.rom_bank &= 31;			// Garde les bits du bas
+				set_rom_bank(params.rom_bank | (value & 3) << 5);
 			}
 			else						// Sélection banque RAM
-				params.ram_bank = value & 3;
+				set_ram_bank(value & 3);
 			break;
 		case 0x3:		// 6000-7FFF: ROM/RAM bank select switch
 			params.bank_mode = value & 1;
@@ -84,7 +96,7 @@ static void mbc2_write(u16 address, u8 value) {
 			break;
 		case 0x1:		// 2000-3FFF: ROM bank number - lower 5 bits
 			if ((address & 0x0100) == 1)
-				params.rom_bank = value & 0xf;
+				set_rom_bank(value & 0xf);
 			break;
 	}
 }
@@ -93,28 +105,32 @@ static void mbc2_write(u16 address, u8 value) {
 static void mbc3_write(u16 address, u8 value) {
 	switch (address >> 13) {
 		case 0x0:		// 0000-1FFF: RAM enable
+			params.ram_enable = (value == 0x0a);
 			break;
 		case 0x1:		// 2000-3FFF: ROM bank number - 7 bits
 			if (value == 0)
 				value = 1;
-			params.rom_bank = value & 127;
+			set_rom_bank(value & 127);
+			break;
+		case 0x02:		// 4000-5FFF: RAM bank number
+			set_ram_bank(value & 3);
 			break;
 	}
 }
 
 // Pour la sauvegarde d'état
-const mbc_params_t *mbc_get_params() {
+mbc_params_t *mbc_get_params() {
 	return &params;
 }
 
-u32 mbc_read_sram_data(u8 *buffer, u32 max_size) {
+unsigned mbc_get_sram_data(u8 *buffer, u32 max_size) {
 	int written = min(max_size, ram_size);
 	// Copie la SRAM actuelle
 	memcpy(buffer, ram_data, written);
 	return written;
 }
 
-void mbc_set_sram_data(const u8 *buffer, u32 size) {
+void mbc_set_sram_data(const u8 *buffer, unsigned size) {
 	// Remplace la SRAM actuelle
 	memcpy(ram_data, buffer, min(size, ram_size));
 }
@@ -150,6 +166,7 @@ void mbc_init(u32 loaded_size) {
 	rom_size = min(rom_size, loaded_size);		// Pour ne pas dépasser...
 	// Taille de la RAM
 	ram_size = calc_ram_size(mem_rom[0x149]);
+	memset(ram_data, 0, ram_size);
 	// Initialisation; la bank 0 est toujours mappée à 0000 - 3FFF
 	// rom_bank concerne uniquement les accès à 4000 - 7FFF
 	params.rom_bank = 1;		// 4000-7FFF
@@ -163,6 +180,7 @@ void mbc_init(u32 loaded_size) {
 		case 0x09:		// ROM + RAM + BATTERY
 			mbc_read = direct_read;
 			mbc_write = null_write;
+			params.ram_enable = 1;		// RAM toujours activée si pas de MBC
 			dbg_info("No mapper");
 			break;
 		case 0x01:		// MBC1

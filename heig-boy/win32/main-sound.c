@@ -16,7 +16,7 @@ int main(int argc, char *argv[]) {
 	DWORD thread_id;
 	HANDLE thread_handle;
 	thread_handle = CreateThread(NULL, 0, win32_sound_thread, NULL, 0, &thread_id);
-	emu_load_cart("roms/yoshi.gb");
+	emu_load_cart("roms/sml.gb");
 	while (true)
 		emu_do_frame();
 }

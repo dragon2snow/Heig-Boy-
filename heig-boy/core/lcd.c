@@ -93,14 +93,6 @@ static void obj_render(u32 *pixel, u8 skipped_prio);
 	\param tile_ptr pointeur sur le motif
 */
 static void draw_tile(u32 *pixel, const u32 *color_table, const u8 *palette, const u8 *tile_ptr);
-/** Dessine un motif de 8 pixels au format GB 2 bits entrelacé sur l'écran,
-	sans tenir compte de la transparence (couleur 0).
-	\param pixel buffer destination de l'écran (32 bits)
-	\param color_table table de traduction de couleur 2 bits <-> 32 bits
-	\param palette table of 4 colors to use for mapping the gray shades
-	\param tile_ptr pointeur sur le motif
-*/
-void draw_tile_replace(u32 *pixel, const u32 *color_table, const u8 *palette, const u8 *tile_ptr);
 /** Retourne un motif de 8x8 au format GB 2 bits horizontalement.
 	\param in pointeur sur le motif (2 octets)
 	\param out destination (2 octets)
@@ -190,15 +182,14 @@ void win_render(u32 *pixel) {
 		mod8(offset_y) * 2;
 	u8 *bg_map = mem_vram + (lcd_ctrl.win_map_addr ? 0x1C00 : 0x1800) +
 		div8(offset_y) * 32;
-	u32 palette[4];
 	// Fenêtre désactivée ou ligne courante en dehors
 	if (!lcd_ctrl.win_en || offset_y < 0)
 		return;
-	// Commence au début de la fenêtre et laisse 8 pixels de libre à gauche
-	pixel = pixel + 8 - offset_x;
-	// La couleur 0 doit rester transparente mais remplacer le BG quand même
-	memcpy(palette, color_table, 4 * sizeof(u32));
-	palette[bg_palette[0]] = 0;
+	// Laisse les 8 pixels de libre à gauche pour le dépassement
+	pixel += 8;
+	// Efface tout ce qui a été dessiné par le BG à partir du commencement
+	// de la fenêtre.
+	memset(pixel + offset_x, 0, 4 * (160 - offset_x));
 	// Dessine jusqu'à la fin de la fenêtre (toujours tout à droite de l'écran)
 	while (offset_x < 160) {
 		// Voir bg_render pour plus d'infos
@@ -206,7 +197,7 @@ void win_render(u32 *pixel) {
 		int tile_no = lcd_ctrl.tile_addr ? (u8)tile_val : (s8)tile_val;
 		u8 *tile_ptr = tile_data + tile_no * 16;
 		// Dessin + avancement de 8 pixels
-		draw_tile_replace(pixel + offset_x, palette, bg_palette, tile_ptr);
+		draw_tile(pixel + offset_x, color_table, bg_palette, tile_ptr);
 		offset_x += 8;
 	}
 }
@@ -276,20 +267,6 @@ void draw_tile(u32 *pixel, const u32 *color_table, const u8 *palette, const u8 *
 		if (color != 0)			// couleur 0 = transparente
 			*pixel = color_table[palette[color]];
 		pixel++, pat1 <<= 1, pat2 <<= 1;
-	}
-}
-
-void draw_tile_replace(u32 *pixel, const u32 *color_table, const u8 *palette, const u8 *tile_ptr) {
-	unsigned j;
-	// Voir draw_tile pour plus d'infos
-	u8 pat1 = tile_ptr[0], pat2 = tile_ptr[1];
-	// Déroulage de boucle pour accélérer (partie critique)
-	for (j = 0; j < 2; j++) {
-		*pixel++ = color_table[palette[(pat2 & 0x80) >> 6 | (pat1 & 0x80) >> 7]];
-		*pixel++ = color_table[palette[(pat2 & 0x40) >> 5 | (pat1 & 0x40) >> 6]];
-		*pixel++ = color_table[palette[(pat2 & 0x20) >> 4 | (pat1 & 0x20) >> 5]];
-		*pixel++ = color_table[palette[(pat2 & 0x10) >> 3 | (pat1 & 0x10) >> 4]];
-		pat1 <<= 4, pat2 <<= 4;
 	}
 }
 

@@ -5,12 +5,13 @@
 #include "sound.h"
 #include "timer.h"
 #include "mbc.h"
+#include "save.h"
 #include "io.h"			// temp
 #include <string.h>		// strcpy
-#include <stdio.h>
-#include <stdlib.h>
+#include <stdio.h>		// file
+#include <stdlib.h>		// min, max
 
-static char rom_file_name[256];
+char emu_file_name[256];
 
 /** Détermine la taille du fichier et met le curseur de lecture au début
 	\param f flux (fichier) ouvert
@@ -24,64 +25,20 @@ static int get_file_size(FILE *f) {
 	return size;
 }
 
-/** Crée un nouveau nom avec une extension différente.
-	\param dest chaîne avec le nom de fichier résultant
-	\param source chaîne avec le nom de fichier d'origine
-	\param new_ext nouvelle extension, avec le point
-*/
-static void change_ext(char *dest, const char *source, const char *new_ext) {
-	int i;
-	strcpy(dest, source);
-	for (i = strlen(dest) - 1;			// Trouve le dernier point
-		i > 0 && dest[i] != '.';		// (pour l'extension)
-		i--);
-	if (i > 0)
-		strcpy(dest + i, ".sav");
-}
-
-/** Essaie de charger la SRAM associée au fichier image chargé */
-static void load_sram() {
-	FILE *f;
-	char sram_name[256];
-	// Détermine le nom du fichier SRAM
-	change_ext(sram_name, rom_file_name, ".sav");
-	f = fopen(sram_name, "rb");
-	if (f) {
-		// Lit la SRAM dans un tampon temporaire
-		u8 tmp_buf[32768];
-		// Vérifie de ne pas dépasser...
-		int size = min(get_file_size(f), 32768);
-		fread(tmp_buf, 1, size, f);
-		mbc_set_sram_data(tmp_buf, size);
-		fclose(f);
-	}
-}
-
-/** Sauvegarde la SRAM associée au logiciel en cours d'exécution */
-static void save_sram() {
-	FILE *f;
-	char sram_name[256];
-	// Détermine le nom du fichier SRAM
-	change_ext(sram_name, rom_file_name, ".sav");
-	f = fopen(sram_name, "wb");
-	if (f) {
-		// Récupère la SRAM dans un tampon temporaire
-		u8 tmp_buf[32768];
-		int size = mbc_get_sram_data(tmp_buf, sizeof(tmp_buf));
-		fwrite(tmp_buf, size, 1, f);
-		fclose(f);
-	}
-}
-
 int emu_load_cart(const char *file_name) {
 	FILE *f = fopen(file_name, "rb");
 	if (f) {
 		// Détermine la taille du fichier
 		int size = get_file_size(f);
 		// Garde pour les sauvegardes d'état
-		strcpy(rom_file_name, file_name);
+		strcpy(emu_file_name, file_name);
 		// Au moins un tableau couvrant la map 0000-7FFF...
 		size = max(size, 0x8000);
+		// Et multiple d'une page (arrondissement à la page supérieure)
+		if (size % 0x4000) {
+			size &= 0x3FFF;
+			size += 0x4000;
+		}
 		mem_rom = malloc(size);
 		// La cartouche préparée, prépare le CPU
 		cpu_init();
@@ -93,13 +50,14 @@ int emu_load_cart(const char *file_name) {
 		fclose(f);
 		// Démarrage
 		mbc_init(size);
+		load_sram();
 		return 0;
 	}
 	else
 		return -1;
 }
 
-#if 1
+#if 0
 	void emu_do_frame() {
 		int elapsed;
 		while (1) {
@@ -129,6 +87,17 @@ int emu_load_cart(const char *file_name) {
 			io_key_press(GBK_B, GetAsyncKeyState('J')? 1:0);
 			io_key_press(GBK_SELECT, GetAsyncKeyState(' ')? 1:0);
 			io_key_press(GBK_START, GetAsyncKeyState(VK_RETURN)? 1:0);
+			if (GetAsyncKeyState(VK_F5))
+				save_state(0);
+			if (GetAsyncKeyState(VK_F8))
+				load_state(0);
+			if (GetAsyncKeyState(VK_F9))
+				save_sram();
+			if (GetAsyncKeyState(VK_F12)) {
+				FILE *f = fopen("C:\\dump.vram", "wb");
+				fwrite(mem_vram, 8192, 1, f);
+				fclose(f);
+			}
 		}
 	}
 #endif

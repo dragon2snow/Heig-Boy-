@@ -20,4 +20,7 @@ void emu_init();
 */
 void emu_do_frame();
 
+/** Nom du fichier image en cours d'émulation. */
+extern char emu_file_name[256];
+
 #endif

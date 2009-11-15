@@ -55,5 +55,27 @@ u16 mem_readw(u16 address);
 */
 void mem_writew(u16 address, u16 value);
 
+/** Types de mémoire, utilisé pour #mem_get_area et #mem_set_area. */
+typedef enum {
+	MEM_RAM = 0,
+	MEM_VRAM,
+	MEM_IO,
+	MEM_OAM
+} mem_area_t;
+
+/** Récupération de la mémoire (pour une sauvegarde d'état)
+	\param buffer tampon de destination
+	\param area zone de mémoire à récupérer
+	\param max_size taille maximale du tampon
+*/
+unsigned mem_get_data(u8 *buffer, mem_area_t area, u32 max_size);
+
+/** Restauration de la mémoire (pour une sauvegarde d'état)
+	\param buffer tampon source
+	\param area zone de mémoire à restaurer
+	\param max_size taille du tampon
+*/
+void mem_set_data(const u8 *buffer, mem_area_t area, unsigned size);
+
 
 #endif

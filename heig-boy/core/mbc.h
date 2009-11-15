@@ -46,20 +46,22 @@ void mbc_sram_write(u16 address, u8 value);
 /** Retourne les paramètres du MBC. Utile pour réaliser une sauvegarde de
 	l'état de la machine.
 	\return une structure #mbc_params_t avec les paramètres courants.
+	\note L'écriture dans la structure retournée est permise et va affecter
+	le MBC.
 */
-const mbc_params_t *mbc_get_params();
+mbc_params_t *mbc_get_params();
 
 /** Lit les données de la SRAM. Utile pour la sauvegarde d'état.
 	\param buffer tampon de destination des données
 	\param max_size taille maximale du tampon
 	\return nombre d'octets lus (taille de la SRAM)
 */
-u32 mbc_get_sram_data(u8 *buffer, u32 max_size);
+unsigned mbc_get_sram_data(u8 *buffer, u32 max_size);
 
 /** Ecrit les données dans la SRAM. Utile pour la restauration d'état.
 	\param buffer données à écrire
 	\param size nombre d'octets à écrire
 */
-void mbc_set_sram_data(const u8 *buffer, u32 size);
+void mbc_set_sram_data(const u8 *buffer, unsigned size);
 
 #endif

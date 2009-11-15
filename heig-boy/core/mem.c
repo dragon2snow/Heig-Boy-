@@ -1,16 +1,18 @@
 #include "mem.h"
 #include "io.h"
 #include "mbc.h"
-#include <string.h>
+#include <string.h>		// memcpy
+#include <stdlib.h>		// min
 
+// Zones mémoire
 u8 *mem_rom;					// ROM: taille dépend de la cartouche
 u8 mem_io[0x100];				// IO + HIRAM = 128 + 128 octets
 u8 mem_vram[0x2000];			// VRAM = 8k
 u8 mem_oam[0x100];				// OAM = plage de 256 octets, 160 utilisés
 static u8 mem_ram[0x2000];		// RAM = 8k
 
+// Accès mémoire en lecture via le bus
 u8 mem_readb(u16 address) {
-	// TODO peut être mieux avec des if?
 	// Sélection de la zone mémoire (digit X du haut: X000-XFFF)
 	switch (address >> 12) {
 		case 0x0:
@@ -41,6 +43,7 @@ u8 mem_readb(u16 address) {
 	}
 }
 
+// Accès en écriture via le bus
 void mem_writeb(u16 address, u8 value) {
 	// Sélection de la zone mémoire, voir mem_readb
 	switch (address >> 12) {
@@ -77,15 +80,73 @@ void mem_writeb(u16 address, u8 value) {
 	}
 }
 
+// Lecture 16 bits -> découpée en 2 lectures 8 bits
 u16 mem_readw(u16 address) {
 	return mem_readb(address) | mem_readb(address + 1) << 8;
 }
 
+// Ecriture 16 bits -> pareil
 void mem_writew(u16 address, u16 value) {
 	mem_writeb(address, value & 0xff);
 	mem_writeb(address + 1, value >> 8 & 0xff);
 }
 
+// Lecture des données d'une mémoire (pour sauvegarde instantanée ou debug)
+unsigned mem_get_data(u8 *buffer, mem_area_t area, u32 max_size) {
+	unsigned data_size;
+	void *data_ptr;
+	switch (area) {
+		case MEM_RAM:
+			data_size = 8 << 10;		// 8 ko
+			data_ptr = mem_ram;
+			break;
+		case MEM_VRAM:
+			data_size = 8 << 10;		// 8 ko
+			data_ptr = mem_vram;
+			break;
+		case MEM_IO:
+			data_size = 256;			// IO + HIRAM
+			data_ptr = mem_io;
+			break;
+		case MEM_OAM:
+			data_size = 160;
+			data_ptr = mem_oam;
+			break;
+		default:				// Zone inconnue
+			return 0;
+	}
+	data_size = min(max_size, data_size);		// Ne pas dépasser
+	memcpy(buffer, data_ptr, data_size);
+	return data_size;
+}
+
+// Ecriture des données d'une mémoire
+void mem_set_data(const u8 *buffer, mem_area_t area, unsigned size) {
+	void *data_ptr;
+	switch (area) {
+		case MEM_RAM:
+			size = min(size, 8 << 10);
+			data_ptr = mem_ram;
+			break;
+		case MEM_VRAM:
+			size = min(size, 8 << 10);
+			data_ptr = mem_vram;
+			break;
+		case MEM_IO:
+			size = min(size, 256);
+			data_ptr = mem_io;
+			break;
+		case MEM_OAM:
+			size = min(size, 160);
+			data_ptr = mem_oam;
+			break;
+		default:				// Zone inconnue
+			return;
+	}
+	memcpy(data_ptr, buffer, size);
+}
+
+// Initialisation
 void mem_init() {
 	// En fait la RAM de la Game Boy contient initialement des données
 	// aléatoires, mais on la mettra à zéro
