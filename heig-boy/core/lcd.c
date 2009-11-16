@@ -318,7 +318,7 @@ void translate_palette(u8 *out, u8 reg) {
 			QueryPerformanceCounter((LARGE_INTEGER*)&last_val);
 		}
 		// Rendu
-		if (cur_line == 0) {
+		if (cur_line == 143) {
 			HDC hdcDest = GetDC(hwnd);
 			unsigned i, j;
 			__int64 val;
