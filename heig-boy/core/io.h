@@ -34,15 +34,15 @@ typedef enum {
 	GBK_B,
 	GBK_SELECT,
 	GBK_START,
-} key_t;
+} gb_key_t;
 
 /** Simule le changement d'état d'une touche de la Game Boy virtuelle.
-	\param k touche en question (voir #key_t)
+	\param k touche en question (voir #gb_key_t)
 	\param state nouveau statut de la touche (1 = pressé, 0 = relâché)
 	\note cette fonction peut être appelée par exemple lorsqu'un utilisateur
 	a appuyé sur une touche de son clavier.
 */
-void io_key_press(key_t k, bool state);
+void io_key_press(gb_key_t k, bool state);
 
 #endif
 

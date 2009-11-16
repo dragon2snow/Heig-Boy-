@@ -105,7 +105,7 @@ void io_write(u16 port, u8 value) {
 	}
 }
 
-void io_key_press(key_t k, bool state) {
+void io_key_press(gb_key_t k, bool state) {
 	// On stocke à l'envers comme une vraie GB (pressé = 0)
 	if (state)
 		key_state &= ~BIT(k);
