@@ -147,24 +147,26 @@ static void op_arithmetic(u8 operation, u8 operand);
 	mettant à jour les flags.
 	\return nouvelle valeur de SP
 */
-static u16 op_add_sp_n();
+static u16 add_sp_n();
 /** Décale les bits d'un registre vers la gauche et met à jour les flags.
 	\param index n° du registre à affecter selon le type r (cf. Z80.DOC)
 	\param method méthode de rotation
 */
-static void op_rotate_left(u8 index, rotate_method_t method);
+static void rotate_left(u8 index, rotate_method_t method);
 /** Décale les bits d'un registre vers la droite et met à jour les flags.
 	\param index n° du registre à affecter selon le type r (cf. Z80.DOC)
 	\param method méthode de rotation
 */
-static void op_rotate_right(u8 index, rotate_method_t method);
+static void rotate_right(u8 index, rotate_method_t method);
 /** Affecte le flag half carry pour une addition ou une soustraction.
 	\param op1 opérande 1 (op1 + op2 ou op1 - op2)
 	\param op2 opérande 2
 	\param r résultat obtenu
 */
-static void op_affect_halfcarry(u8 op1, u8 op2, u8 r);
-/** Exécute une opération étendue (précédée de l'opcode CB) */
+static void affect_halfcarry(u8 op1, u8 op2, u8 r);
+/** Exécute une opération étendue (précédée de l'opcode CB)
+	\return nombre de cycles brûlés
+*/
 static unsigned op_cb_exec();
 
 void cpu_init() {
@@ -297,50 +299,46 @@ unsigned cpu_exec_instruction() {
 			SP = HL;
 			return 2;
 		// GMB 8-bit arithmetic / logical commands
-		case 0x27:		// daa
-		{
-			// n = dernière opération: 1=soustraction, 0=addition
-			if ((accu & 0xf) >= 0xa || flags.halfcarry) {
+		case 0x27:		// daa - utilisé pour le BCD
+			// http://www.ftp83plus.net/Tutorials/z80inset_fullA.htm
+			// Exemple: 0x8 + 0x3 = 0xb -> 0x11 (+6)
+			if ((accu & 0xf) >= 0xa || flags.halfcarry)
 				accu += flags.n ? -6 : 6;
-				flags.halfcarry ^= 1;
-			}
-			else
-				flags.halfcarry = 0;
-			// Pareil pour le digit du bas
+			// Pareil pour le digit du haut
 			if ((accu & 0xf0) >= 0xa0 || flags.carry) {
 				accu += flags.n ? -0x60 : 0x60;
-				flags.carry ^= 1;
+				flags.carry = 1;
 			}
 			else
 				flags.carry = 0;
+			flags.halfcarry = 0;
 			flags.zero = (accu == 0);
 			return 1;
-		}
 		case 0x2f:		// cpl
 			accu = ~accu;
 			return 1;
 		// GMB 16-bit arithmetic / logical commands
 		case 0xe8:		// add sp, (signed)n
-			SP = op_add_sp_n();
+			SP = add_sp_n();
 			return 4;
 		case 0xf8:		// ld hl, sp + (signed)n
-			HL = op_add_sp_n();
+			HL = add_sp_n();
 			return 3;
 			// GMB rotate and shift commands
 		case 0x07:		// rlc a - rotate accu left
-			op_rotate_left(OP_R_ACCU, RM_RC);
+			rotate_left(OP_R_ACCU, RM_RC);
 			flags.zero = 0;
 			return 1;
 		case 0x17:		// rl a - rotate accu left through carry
-			op_rotate_left(OP_R_ACCU, RM_R);
+			rotate_left(OP_R_ACCU, RM_R);
 			flags.zero = 0;
 			return 1;
 		case 0x0f:		// rrc a - rotate accu right
-			op_rotate_left(OP_R_ACCU, RM_RC);
+			rotate_left(OP_R_ACCU, RM_RC);
 			flags.zero = 0;
 			return 1;
 		case 0x1f:		// rr a - rotate accu right through carry
-			op_rotate_left(OP_R_ACCU, RM_R);
+			rotate_left(OP_R_ACCU, RM_R);
 			flags.zero = 0;
 			return 1;
 		// GMB control commands
@@ -358,9 +356,9 @@ unsigned cpu_exec_instruction() {
 		case 0x76:		// halt - attend une IRQ
 			halted = 1;
 			return 1;
-		case 0x10:		// stop - ???
+/*		case 0x10:		// stop - ???
 			dbg_error("stop unimplemented");
-			return 1;
+			return 1;*/
 		case 0xf3:		// di - disable interrupts
 			IME = 0;	// (Interrupt Master Enable)
 			return 1;
@@ -435,7 +433,7 @@ unsigned cpu_exec_instruction() {
 						flags.n = 0;
 						flags.carry = (result > 0xffff);
 						// Halfcarry, opération 16 bits
-						op_affect_halfcarry(HL >> 8, operand >> 8, result >> 8);
+						affect_halfcarry(HL >> 8, operand >> 8, result >> 8);
 						HL = result;
 						return 2;
 					}
@@ -463,8 +461,8 @@ unsigned cpu_exec_instruction() {
 						flags.n = 0;
 					}
 					// Que ce soit une addition ou une soustraction, l'opérande
-					// est 1. Voir la fonction op_affect_halfcarry.
-					op_affect_halfcarry(reg, 1, (u8)result);
+					// est 1. Voir la fonction affect_halfcarry.
+					affect_halfcarry(reg, 1, (u8)result);
 					// Affecte le résultat
 					op_r_write(mid_digit, (u8)result);
 					flags.zero = (result & 0xff) == 0;
@@ -541,9 +539,9 @@ unsigned cpu_exec_instruction() {
 			break;
 	}
 
-	dbg_error("unimplemented!");
-	cpu_print_instruction(PC - 1);
 	cpu_disassemble(PC - 1, temp_name, &temp_len, &temp);
+	cpu_print_instruction(PC - 1);
+	dbg_error("unimplemented!");
 	PC += temp_len - 1;
 	return 1;
 }
@@ -624,7 +622,7 @@ bool condition_test(u8 operand) {
 		return flags.zero == (operand & 1);
 }
 
-void op_affect_halfcarry(u8 op1, u8 op2, u8 r) {
+void affect_halfcarry(u8 op1, u8 op2, u8 r) {
 	/*	Pour calculer le halfcarry, on souhaite détecter s'il y a eu
 		un débordement sur les bits du bas, affectant les bits du haut.
 		Pour cela, on utilise une propriété mathématique, qui fait que
@@ -641,17 +639,17 @@ void op_affect_halfcarry(u8 op1, u8 op2, u8 r) {
 	flags.halfcarry = ((op1 ^ op2 ^ r) & 0x10) != 0;
 }
 
-u16 op_add_sp_n() {
+u16 add_sp_n() {
 	s8 offset = (s8)pc_readb();
 	u32 result = SP + offset;
 	// Dépassement?
 	flags.carry = (result > 0xffff);
 	// Halfcarry sur les bits du haut en 16 bits
-	op_affect_halfcarry(SP >> 8, offset >> 8, result >> 8);
+	affect_halfcarry(SP >> 8, offset >> 8, result >> 8);
 	return result;
 }
 
-void op_rotate_left(u8 index, rotate_method_t method) {
+void rotate_left(u8 index, rotate_method_t method) {
 	u8 val = op_r_read(index);
 	// Etat du carry avant l'affectation
 	u8 carry_bit = flags.carry ? BIT(0) : 0;
@@ -668,7 +666,7 @@ void op_rotate_left(u8 index, rotate_method_t method) {
 			val = val << 1 | val >> 7;
 			break;
 		case RM_SA:		// instruction sla
-			val = val << 1 | 0;
+			val = val << 1;
 			break;
 		case RM_SL:		// instruction sll
 			val = val << 1 | 1;
@@ -679,7 +677,7 @@ void op_rotate_left(u8 index, rotate_method_t method) {
 	op_r_write(index, val);
 }
 
-void op_rotate_right(u8 index, rotate_method_t method) {
+void rotate_right(u8 index, rotate_method_t method) {
 	u8 val = op_r_read(index);
 	// Etat du carry avant l'affectation
 	u8 carry_bit = flags.carry ? BIT(7) : 0;
@@ -699,7 +697,7 @@ void op_rotate_right(u8 index, rotate_method_t method) {
 			val = val >> 1 | val & 0x80;
 			break;
 		case RM_SL:			// instruction srl
-			val >>= 1;
+			val = val >> 1;
 			break;
 	}
 	// Flag zéro
@@ -726,7 +724,7 @@ void op_arithmetic(u8 operation, u8 operand)
 			result = accu + operand;
 			flags.n = 0;
 			// Calcul du half-carry (carry sur les 4 bits du bas)
-			op_affect_halfcarry(accu, operand, (u8)result);
+			affect_halfcarry(accu, operand, (u8)result);
 			// Stocke le résultat dans A et affecte les flags zero et carry
 			accu_write(result);
 			break;
@@ -739,7 +737,7 @@ void op_arithmetic(u8 operation, u8 operand)
 			result = accu - operand;
 			flags.n = 1;
 			// Pareil que add pour le reste
-			op_affect_halfcarry(accu, operand, (u8)result);
+			affect_halfcarry(accu, operand, (u8)result);
 			accu_write(result);
 			break;
 
@@ -762,7 +760,7 @@ void op_arithmetic(u8 operation, u8 operand)
 		case 7:		// cp - compare a with operand (= sub sans stockage)
 			result = accu - operand;
 			flags.n = 1;
-			op_affect_halfcarry(accu, operand, (u8)result);
+			affect_halfcarry(accu, operand, (u8)result);
 			// A et operand sont égaux
 			flags.zero = (result == 0);
 			// Bits supplémentaires -> dépassement (operand > a)
@@ -781,22 +779,22 @@ unsigned op_cb_exec() {
 		case 0:		// 00 ooo rrr -> rotate / shift commands avec registre
 			switch (mid_digit) {
 				case 0:		// rlc
-					op_rotate_left(operand, RM_RC);
+					rotate_left(operand, RM_RC);
 					break;
 				case 1:		// rrc
-					op_rotate_right(operand, RM_RC);
+					rotate_right(operand, RM_RC);
 					break;
 				case 2:		// rl
-					op_rotate_left(operand, RM_R);
+					rotate_left(operand, RM_R);
 					break;
 				case 3:		// rr
-					op_rotate_right(operand, RM_R);
+					rotate_right(operand, RM_R);
 					break;
 				case 4:		// sla
-					op_rotate_left(operand, RM_SA);
+					rotate_left(operand, RM_SA);
 					break;
 				case 5:		// sra
-					op_rotate_right(operand, RM_SA);
+					rotate_right(operand, RM_SA);
 					break;
 				case 6:		// swap
 					// Le digit du bas passe en haut et inversément
@@ -805,7 +803,7 @@ unsigned op_cb_exec() {
 					flags.zero = (reg == 0);
 					break;
 				case 7:		// srl
-					op_rotate_right(operand, RM_SL);
+					rotate_right(operand, RM_SL);
 					break;
 			}
 			return operand == OP_R_HL ? 4 : 2;
