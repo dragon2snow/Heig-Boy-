@@ -186,34 +186,10 @@ void cpu_trigger_irq(cpu_interrupt_t int_no) {
 	REG(IF) |= BIT(int_no);
 }
 
-unsigned cpu_get_state(u8 *buffer) {
-	// Sauvegarde des registres dans un buffer
-	memcpy(buffer, registers, sizeof(registers));
-	buffer += sizeof(registers);
-	*buffer++ = SP & 0xff;
-	*buffer++ = SP >> 8;
-	*buffer++ = PC & 0xff;
-	*buffer++ = PC >> 8;
-	*buffer++ = IME;
-	*buffer++ = halted;
-	return sizeof(registers) + 6;
-}
-
-void cpu_set_state(const u8 *buffer) {
-	// Restoration des registres depuis le buffer
-	memcpy(registers, buffer, sizeof(registers));
-	buffer += sizeof(registers);
-	SP = buffer[0] | buffer[1] << 8;
-	PC = buffer[2] | buffer[3] << 8;
-	IME = buffer[4];
-	halted = buffer[5];
-}
-
 unsigned cpu_exec_instruction() {
 	u8 opcode, upper_digit, mid_digit, low_digit;
 	char temp_name[256];
 	int temp, temp_len;
-	static FILE *f = NULL;
 
 	// Interruptions en attente?
 	if ((IME || halted) && (REG(IF) & REG(IE))) {
@@ -227,7 +203,7 @@ unsigned cpu_exec_instruction() {
 				IME = 0;
 				call(0x40 + 8 * i);
 				halted = 0;
-				return 2;		// 2 cycles (appel - pc_read) - empirique
+//				return 2;		// 2 cycles (appel - pc_read) - empirique
 			}
 		}
 	}
@@ -237,8 +213,8 @@ unsigned cpu_exec_instruction() {
 
 /*	cpu_disassemble(PC, temp_name, &temp_len, &temp);
 	if (!f)
-		f = fopen("C:\\shit-ours.log", "w");
-	fprintf(f, "%i %04x %s\n", cycleCount, PC, temp_name);*/
+		f = fopen("C:\\shit-new.log", "w");
+	fprintf(f, "%i %04x %02x %s\n", cycleCount, PC, accu, temp_name);*/
 
 	// Décodage de l'opcode
 	opcode = pc_readb();
@@ -334,11 +310,11 @@ unsigned cpu_exec_instruction() {
 			flags.zero = 0;
 			return 1;
 		case 0x0f:		// rrc a - rotate accu right
-			rotate_left(OP_R_ACCU, RM_RC);
+			rotate_right(OP_R_ACCU, RM_RC);
 			flags.zero = 0;
 			return 1;
 		case 0x1f:		// rr a - rotate accu right through carry
-			rotate_left(OP_R_ACCU, RM_R);
+			rotate_right(OP_R_ACCU, RM_R);
 			flags.zero = 0;
 			return 1;
 		// GMB control commands
@@ -825,4 +801,27 @@ unsigned op_cb_exec() {
 			return operand == OP_R_HL ? 4 : 2;
 	}
 	return 1;
+}
+
+unsigned cpu_get_state(u8 *buffer) {
+	// Sauvegarde des registres dans un buffer
+	memcpy(buffer, registers, sizeof(registers));
+	buffer += sizeof(registers);
+	*buffer++ = SP & 0xff;
+	*buffer++ = SP >> 8;
+	*buffer++ = PC & 0xff;
+	*buffer++ = PC >> 8;
+	*buffer++ = IME;
+	*buffer++ = halted;
+	return sizeof(registers) + 6;
+}
+
+void cpu_set_state(const u8 *buffer) {
+	// Restoration des registres depuis le buffer
+	memcpy(registers, buffer, sizeof(registers));
+	buffer += sizeof(registers);
+	SP = buffer[0] | buffer[1] << 8;
+	PC = buffer[2] | buffer[3] << 8;
+	IME = buffer[4];
+	halted = buffer[5];
 }
