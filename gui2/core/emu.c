@@ -26,13 +26,18 @@ static int get_file_size(FILE *f) {
 }
 
 int emu_load_cart(const char *file_name) {
-	FILE *f = fopen(file_name, "rb");
+   FILE *f;
+
+   if(f != NULL)
+       close(f);
+   f = fopen(file_name, "rb");
+
 	if (f) {
 		// Détermine la taille du fichier
 		int size = get_file_size(f);
-		// Garde pour les sauvegardes d'état
 		strcpy(emu_file_name, file_name);
-		// Au moins un tableau couvrant la map 0000-7FFF...
+      // Garde pour les sauvegardes d'état
+      // Au moins un tableau couvrant la map 0000-7FFF...
 		size = max(size, 0x8000);
 		// Et multiple d'une page (arrondissement à la page supérieure)
 		if (size % 0x4000) {
@@ -59,10 +64,11 @@ int emu_load_cart(const char *file_name) {
 
 #if linux
 	void emu_do_frame() {
-		int elapsed;
-		while (1) {
-			elapsed = cpu_exec_instruction() * 4;
-			lcd_tick(elapsed);
+      lcd_frame_end_flag = false;
+      while (!lcd_frame_end_flag) {
+         unsigned elapsed = cpu_exec_instruction() * 4;
+         lcd_tick(elapsed);
+         timer_tick(elapsed);
 		}
 	}
 #else
