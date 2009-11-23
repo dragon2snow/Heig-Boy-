@@ -57,48 +57,11 @@ int emu_load_cart(const char *file_name) {
 		return -1;
 }
 
-#if linux
-	void emu_do_frame() {
+void emu_do_frame() {
 	lcd_frame_end_flag = false;
 	while (!lcd_frame_end_flag) {
 		unsigned elapsed = cpu_exec_instruction() * 4;
 		lcd_tick(elapsed);
 		timer_tick(elapsed);
-		}
 	}
-#else
-	#include <windows.h>
-	#include <conio.h>
-	extern HWND hwnd;
-	void emu_do_frame() {
-		lcd_frame_end_flag = false;
-		while (!lcd_frame_end_flag) {
-			unsigned elapsed = cpu_exec_instruction() * 4;
-			lcd_tick(elapsed);
-			timer_tick(elapsed);
-		}
-
-		// DEBUG: gestion des touches
-		if (GetForegroundWindow() == hwnd) {
-			io_key_press(GBK_RIGHT, GetAsyncKeyState('F')? 1:0);
-			io_key_press(GBK_LEFT, GetAsyncKeyState('A')? 1:0);
-			io_key_press(GBK_UP, GetAsyncKeyState('E')? 1:0);
-			io_key_press(GBK_DOWN, GetAsyncKeyState('C')? 1:0);
-			io_key_press(GBK_A, GetAsyncKeyState('K')? 1:0);
-			io_key_press(GBK_B, GetAsyncKeyState('J')? 1:0);
-			io_key_press(GBK_SELECT, GetAsyncKeyState(' ')? 1:0);
-			io_key_press(GBK_START, GetAsyncKeyState(VK_RETURN)? 1:0);
-			if (GetAsyncKeyState(VK_F5))
-				save_state(0);
-			if (GetAsyncKeyState(VK_F8))
-				load_state(0);
-			if (GetAsyncKeyState(VK_F9))
-				save_sram();
-			if (GetAsyncKeyState(VK_F12)) {
-				FILE *f = fopen("C:\\dump.vram", "wb");
-				fwrite(mem_vram, 8192, 1, f);
-				fclose(f);
-			}
-		}
-	}
-#endif
+}

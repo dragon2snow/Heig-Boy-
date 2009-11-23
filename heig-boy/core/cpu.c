@@ -190,12 +190,15 @@ unsigned cpu_exec_instruction() {
 	u8 opcode, upper_digit, mid_digit, low_digit;
 	char temp_name[256];
 	int temp, temp_len;
+/*	static FILE *f = NULL;
+	extern int cycleCount;*/
 
 	// Interruptions en attente?
 	if ((IME || halted) && (REG(IF) & REG(IE))) {
 		int i;
 		// Teste les bits actifs
 		for (i = 0; i < INT_LAST; i++) {
+			// IF: interruption provoquée, IE: interruption activée
 			if (REG(IF) & REG(IE) & BIT(i)) {
 				// Désactive les interruptions pour éviter les IRQ multiples,
 				// désactive le flag dans IF et saute à l'interruption
@@ -689,15 +692,15 @@ void call(u16 address) {
 
 void op_arithmetic(u8 operation, u8 operand)
 {
-	u16 result;		// Résultat temporaire
+	u16 result, operand16 = operand;		// Résultat temporaire
 	switch (operation)
 	{
 		case 1:		// adc - add with carry, a = a + operand + cy
 			if (flags.carry)
-				operand++;
+				operand16++;
 			// Pareil que add
 		case 0:		// add - addition, a = a + operand
-			result = accu + operand;
+			result = accu + operand16;
 			flags.n = 0;
 			// Calcul du half-carry (carry sur les 4 bits du bas)
 			affect_halfcarry(accu, operand, (u8)result);
@@ -707,10 +710,10 @@ void op_arithmetic(u8 operation, u8 operand)
 
 		case 3:		// sbc - substract with carry, a = a - operand - cy
 			if (flags.carry)
-				operand++;			// a = a - (operand + cy)
+				operand16++;			// a = a - (operand + cy)
 			// Pareil que sub
 		case 2:		// sub - soustraction - a = a - operand
-			result = accu - operand;
+			result = accu - operand16;
 			flags.n = 1;
 			// Pareil que add pour le reste
 			affect_halfcarry(accu, operand, (u8)result);

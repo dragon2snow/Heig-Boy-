@@ -12,10 +12,17 @@ void lcd_draw_init();
 /** Dessine la ligne courante (LY) sur le buffer LCD */
 void lcd_draw_line();
 /** Mise à jour du composant LCD
-	\param elapsed cycles elapsed since the last tick
+	\param elapsed cycles écoulés depuis le dernier tick
 */
 void lcd_tick(int elapsed);
-
-u32* lcd_line(int n);
+/** Récupère l'image dessinée. A appeler juste après emu_do_frame pour obtenir
+	l'image dessinée pour la frame en question.
+	\param dest tampon de taille suffisante pour accueillir 144 * destWidth
+		pixels (32 bits par pixel)
+	\param destWidth largeur en pixels du tampon
+	\note le format est BGRA (8 bits Bleu, Vert, Rouge, Alpha dans cet ordre,
+		avec l'alpha comme bits de poids fort).
+*/
+void lcd_copy_to_buffer(u32 *dest, int destWidth);
 
 #endif

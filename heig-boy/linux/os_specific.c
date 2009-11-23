@@ -5,3 +5,6 @@ void set_text_color(int c) {
 	// TODO
 }
 
+void sound_driver_init() {
+	// TODO
+}

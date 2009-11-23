@@ -9,6 +9,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+const char *header = "HBSSv1.0";
+
 /** Crée un nouveau nom avec une extension différente.
 	\param dest chaîne avec le nom de fichier résultant
 	\param source chaîne avec le nom de fichier d'origine
@@ -64,6 +66,8 @@ void save_state(int slot) {
 		// Ecriture des différents champs
 		u8 tmp_buf[32768];
 		unsigned size;
+		// 0) En-tête
+		fwrite(header, strlen(header), 1, f);
 		// 1) Registres CPU
 		size = cpu_get_state(tmp_buf);
 		fwrite(&size, sizeof(size), 1, f);
@@ -107,38 +111,43 @@ void load_state(int slot) {
 		// Même schéma que #save_state
 		u8 tmp_buf[32768];
 		unsigned size, i;
-		// 1) Registres CPU
-		fread(&size, sizeof(size), 1, f);
-		fread(tmp_buf, size, 1, f);
-		cpu_set_state(tmp_buf);
-		// 2) RAM
-		fread(&size, sizeof(size), 1, f);
-		fread(tmp_buf, size, 1, f);
-		mem_set_data(tmp_buf, MEM_RAM, size);
-		// 3) VRAM
-		fread(&size, sizeof(size), 1, f);
-		fread(tmp_buf, size, 1, f);
-		mem_set_data(tmp_buf, MEM_VRAM, size);
-		// 4) Ports
-		fread(&size, sizeof(size), 1, f);
-		fread(tmp_buf, size, 1, f);
-		mem_set_data(tmp_buf, MEM_IO, size);
-		// Signale aux composants qu'ils ont changé
-		for (i = 0; i <= 0x4B; i++)
-			if (i != R_DMA)		// Sauf le DMA (lancerait une copie!)
-				io_write(i, tmp_buf[i]);
-		// 5) OAM
-		fread(&size, sizeof(size), 1, f);
-		fread(tmp_buf, size, 1, f);
-		mem_set_data(tmp_buf, MEM_OAM, size);
-		// 6) SRAM (sauvegarde)
-		fread(&size, sizeof(size), 1, f);
-		fread(tmp_buf, size, 1, f);
-		mbc_set_sram_data(tmp_buf, size);
-		// 7) Etat du MBC
-		fread(&size, sizeof(size), 1, f);
-		size = min(size, sizeof(mbc_params_t));
-		fread(mbc_get_params(), 1, size, f);
+		// 0) En-tête
+		fread(tmp_buf, strlen(header), 1, f);
+		// L'en-tête correspond-t-il?
+		if (!memcmp(tmp_buf, header, strlen(header))) {
+			// 1) Registres CPU
+			fread(&size, sizeof(size), 1, f);
+			fread(tmp_buf, size, 1, f);
+			cpu_set_state(tmp_buf);
+			// 2) RAM
+			fread(&size, sizeof(size), 1, f);
+			fread(tmp_buf, size, 1, f);
+			mem_set_data(tmp_buf, MEM_RAM, size);
+			// 3) VRAM
+			fread(&size, sizeof(size), 1, f);
+			fread(tmp_buf, size, 1, f);
+			mem_set_data(tmp_buf, MEM_VRAM, size);
+			// 4) Ports
+			fread(&size, sizeof(size), 1, f);
+			fread(tmp_buf, size, 1, f);
+			mem_set_data(tmp_buf, MEM_IO, size);
+			// Signale aux composants qu'ils ont changé
+			for (i = 0; i <= 0x4B; i++)
+				if (i != R_DMA)		// Sauf le DMA (lancerait une copie!)
+					io_write(i, tmp_buf[i]);
+			// 5) OAM
+			fread(&size, sizeof(size), 1, f);
+			fread(tmp_buf, size, 1, f);
+			mem_set_data(tmp_buf, MEM_OAM, size);
+			// 6) SRAM (sauvegarde)
+			fread(&size, sizeof(size), 1, f);
+			fread(tmp_buf, size, 1, f);
+			mbc_set_sram_data(tmp_buf, size);
+			// 7) Etat du MBC
+			fread(&size, sizeof(size), 1, f);
+			size = min(size, sizeof(mbc_params_t));
+			fread(mbc_get_params(), 1, size, f);
+		}
 		fclose(f);
 	}
 }
