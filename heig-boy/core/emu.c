@@ -59,10 +59,11 @@ int emu_load_cart(const char *file_name) {
 
 #if linux
 	void emu_do_frame() {
-		int elapsed;
-		while (1) {
-			elapsed = cpu_exec_instruction() * 4;
-			lcd_tick(elapsed);
+	lcd_frame_end_flag = false;
+	while (!lcd_frame_end_flag) {
+		unsigned elapsed = cpu_exec_instruction() * 4;
+		lcd_tick(elapsed);
+		timer_tick(elapsed);
 		}
 	}
 #else

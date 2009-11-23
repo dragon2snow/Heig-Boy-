@@ -7,9 +7,9 @@
 // Pour le core de la GameBoy
 extern "C"
 {
-    #include "core/emu.h"
-    #include "core/lcd.h"
-    #include "core/io.h"
+	 #include "../heig-boy/core/emu.h"
+	 #include "../heig-boy/core/lcd.h"
+	 #include "../heig-boy/core/io.h"
 }
 
 namespace Ui

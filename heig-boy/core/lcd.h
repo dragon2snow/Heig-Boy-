@@ -16,4 +16,6 @@ void lcd_draw_line();
 */
 void lcd_tick(int elapsed);
 
+u32* lcd_line(int n);
+
 #endif

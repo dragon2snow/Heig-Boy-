@@ -108,6 +108,11 @@ static void translate_palette(u8 *out, u8 reg);
 	méga hack win32-only. (SetPixel sur GetForegroundWindow...) */
 static void temp_render_to_screen();
 
+u32* lcd_line(int n)
+{
+	return lcd_buffer_line(n) + 8;
+}
+
 void lcd_draw_line() {
 	u32 *dest = lcd_buffer_line(cur_line);
 	// Prépare les palettes
