@@ -48,9 +48,9 @@ typedef struct {
 	Buffer écran
 */
 // Temporaire: table de conversion des couleurs (GB <-> 32 bits)
-//static const u32 color_table[4] = {0xffd3de34, 0xffa5b52b, 0xff70831b, 0xff284440};
+static const u32 color_table[4] = {0xffd3de34, 0xffa5b52b, 0xff70831b, 0xff284440};
 //static const u32 color_table[4] = {0xffff00ff, 0xffc000c0, 0xff800080, 0xff400040};
-static const u32 color_table[4] = {0xff00e7ff, 0xff009ac7, 0xff004d8f, 0xff000057};
+//static const u32 color_table[4] = {0xff00e7ff, 0xff009ac7, 0xff004d8f, 0xff000057};
 //static const u32 color_table[4] = {0xffffffff, 0xffaaaaaa, 0xff555555, 0xff000000};
 static u8 bg_palette[4], obj_palette[2][4];
 /** Bitmap 32 bits de 256x144 pixels */

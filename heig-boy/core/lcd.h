@@ -13,8 +13,9 @@ void lcd_draw_init();
 void lcd_draw_line();
 /** Mise à jour du composant LCD
 	\param elapsed cycles écoulés depuis le dernier tick
+	\param draw indique si le rendu (dessin) doit être effectué. Plus lent.
 */
-void lcd_tick(int elapsed);
+void lcd_tick(int elapsed, bool draw);
 /** Récupère l'image dessinée. A appeler juste après emu_do_frame pour obtenir
 	l'image dessinée pour la frame en question.
 	\param dest tampon de taille suffisante pour accueillir 144 * destWidth

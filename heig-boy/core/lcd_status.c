@@ -26,7 +26,7 @@ void lcd_init() {
 	lcd_draw_init();
 }
 
-void lcd_tick(int elapsed) {
+void lcd_tick(int elapsed, bool draw) {
 	next_event -= elapsed;
 	// Evénement?
 	while (next_event < 0) {
@@ -70,7 +70,8 @@ void lcd_tick(int elapsed) {
 			case 3:		// dessin en cours
 				lcd_status.mode = 0;
 				next_event += 204;
-				lcd_draw_line();
+				if (draw)
+					lcd_draw_line();
 				// La dernière ligne a été dessinée?
 				if (lcd_line == 143)
 					lcd_frame_end_flag = true;

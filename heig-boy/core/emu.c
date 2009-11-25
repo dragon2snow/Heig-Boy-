@@ -25,7 +25,7 @@ static int get_file_size(FILE *f) {
 	return size;
 }
 
-int emu_load_cart(const char *file_name) {
+bool emu_load_cart(const char *file_name) {
 	FILE *f = fopen(file_name, "rb");
 	if (f) {
 		// Détermine la taille du fichier
@@ -51,17 +51,16 @@ int emu_load_cart(const char *file_name) {
 		// Démarrage
 		mbc_init(size);
 		load_sram();
-		return 0;
+		return true;
 	}
-	else
-		return -1;
+	return false;
 }
 
-void emu_do_frame() {
+void emu_do_frame(bool draw) {
 	lcd_frame_end_flag = false;
 	while (!lcd_frame_end_flag) {
 		unsigned elapsed = cpu_exec_instruction() * 4;
-		lcd_tick(elapsed);
+		lcd_tick(elapsed, draw);
 		timer_tick(elapsed);
 	}
 }
