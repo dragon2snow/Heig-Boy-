@@ -1,12 +1,20 @@
 # Petit makefile un peu pourri mais en même temps c'est pas moi le pro de Linux
+EMUDIR = .
+COREDIR = core
+LINUXDIR = linux
+
 TARGET = heig-boy
 CC = gcc
-CFLAGS = -Wall -Ilinux -Icore -g
-LIBS = 
+CFLAGS = -Wall -I$(EMUDIR) -I$(LINUXDIR) -g
+LIBS = -lasound
 # Y a moyen d'inclure génériquement tout ce qu'il y a dans core et linux, mais je sais plus comment de tête
-OBJS = linux/main.o linux/os_specific.o \
-	core/cpu.o core/dasm.o core/debug.o core/emu.o core/lcd.o \
-	core/lcd_status.o core/mem.o core/sound.o
+OBJS = $(LINUXDIR)/main.o $(LINUXDIR)/os_specific.o \
+	$(LINUXDIR)/sound-driver.o \
+	$(COREDIR)/color_it.o $(COREDIR)/cpu.o $(COREDIR)/dasm.o \
+	$(COREDIR)/debug.o $(COREDIR)/emu.o $(COREDIR)/io.o \
+	$(COREDIR)/lcd.o $(COREDIR)/lcd_status.o $(COREDIR)/mbc.o \
+	$(COREDIR)/mem.o $(COREDIR)/save.o $(COREDIR)/sound.o \
+	$(COREDIR)/timer.o
 
 # Compile les fichiers
 %.o: %.c
