@@ -1,3 +1,4 @@
+#include "lcd.h"
 #include "io.h"
 #include "ports.h"
 #include "sound.h"
@@ -82,7 +83,18 @@ void io_write(u16 port, u8 value) {
 
 			case R_STAT:		// statut LCD
 				// Bits du bas read only
-				REG(STAT) = REG(STAT) & 7 | (value & ~7);
+				mem_io[port] = mem_io[port] & 7 | (value & ~7);
+				break;
+
+			case R_LCDC:		// contrôle du LCD
+				// Petit hack: le LCD ne peut être activé que pendant la VBLANK
+				// On utilise donc cette indication pour se synchroniser et
+				// commencer l'affichage à ce moment
+				if (value & ~mem_io[port] & BIT(7)) {
+					lcd_begin();
+					REG(LY) = 0;
+				}
+				mem_io[port] = value;
 				break;
 
 			case R_LY:			// ligne courante LCD -> read only!

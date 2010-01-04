@@ -420,6 +420,7 @@ void sound_render(s16 *buf, unsigned len) {
 			(*mix_buf4++ & mask24);
 		left = (left * ch5.so1_vol) >> 3;		// multiplie par le volume global
 		right = (right * ch5.so2_vol) >> 3;		// >>3 au lieu de /7 pour être plus rapide
+		// S'assure de ne pas dépasser la crête (clipping)
 		*buf++ = min(32767, max(-32768, right));
 		*buf++ = min(32767, max(-32768, left));
 	}
@@ -445,27 +446,28 @@ void sound_write(u16 port, u8 value) {
 	// Généralisation pour le générateur de fréquence (tone)
 	if (port >= R_NR10 && port < R_NR30 && port != R_NR20) {
 		// Sélection du canal en fonction du port visé (5 ports par canal)
-		tone_channel_vars_t *vars = &tone_ch[(port - R_NR10) / 5];
+		tone_channel_vars_t *vars = &tone_ch[port >= R_NR20 ? 1 : 0];
 		tone_channel_t *channel = vars->channel;
-		port = (port - R_NR10) % 5;
+		if (port >= R_NR20) 		// ch2 -> comme ch1
+			port -= R_NR20 - R_NR10;
 		switch (port) {
-			case 0:				// nrX0: sweep (ch1 only)
+			case R_NR10:			// nrX0: sweep (ch1 only)
 				vars->sweep_time = SAMPLE_RATE * channel->sweep_time / 128;
 				vars->sweep_ctr = 0;
 				break;
-			case 1:				// nrX1: length & duty
+			case R_NR11:			// nrX1: length & duty
 				// Sound Length = (64-t1)*(1/256) seconds
 				vars->len_time = SAMPLE_RATE * (64 - channel->sound_length) / 256;
 				vars->len_ctr = 0;
 				break;
-			case 2:				// nrX2: volume envelope
+			case R_NR12:			// nrX2: volume envelope
 				// 1 step = n*(1/64) seconds
 				vars->vol_time = channel->vol_shift * SAMPLE_RATE / 64;
 				vars->vol_ctr = 0;
 				vars->cur_volume = channel->vol_initial;
 				break;
-			case 3:
-			case 4:				// nrX3/4: fréquence
+			case R_NR13:
+			case R_NR14:			// nrX3/4: fréquence
 				// Recommence le son
 				if (channel->restart) {
 					vars->len_ctr = 0;

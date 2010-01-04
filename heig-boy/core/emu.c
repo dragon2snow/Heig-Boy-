@@ -17,8 +17,8 @@ char emu_file_name[256];
 	\param f flux (fichier) ouvert
 	\return taille du fichier en octets
 */
-static int get_file_size(FILE *f) {
-	int size;
+static unsigned get_file_size(FILE *f) {
+	unsigned size;
 	fseek(f, 0, SEEK_END);
 	size = ftell(f);
 	fseek(f, 0, SEEK_SET);
@@ -29,16 +29,13 @@ bool emu_load_cart(const char *file_name) {
 	FILE *f = fopen(file_name, "rb");
 	if (f) {
 		// Détermine la taille du fichier
-		int size = get_file_size(f);
+		unsigned size = get_file_size(f);
 		// Garde pour les sauvegardes d'état
 		strcpy(emu_file_name, file_name);
 		// Au moins un tableau couvrant la map 0000-7FFF...
 		size = max(size, 0x8000);
 		// Et multiple d'une page (arrondissement à la page supérieure)
-		if (size % 0x4000) {
-			size &= 0x3FFF;
-			size += 0x4000;
-		}
+		size = ((size + 0x3FFF) / 0x4000) * 0x4000;
 		mem_rom = malloc(size);
 		// La cartouche préparée, prépare le CPU
 		cpu_init();

@@ -190,8 +190,6 @@ unsigned cpu_exec_instruction() {
 	u8 opcode, upper_digit, mid_digit, low_digit;
 	char temp_name[256];
 	int temp, temp_len;
-/*	static FILE *f = NULL;
-	extern int cycleCount;*/
 
 	// Interruptions en attente?
 	if ((IME || halted) && (REG(IF) & REG(IE))) {
@@ -200,24 +198,22 @@ unsigned cpu_exec_instruction() {
 		for (i = 0; i < INT_LAST; i++) {
 			// IF: interruption provoquée, IE: interruption activée
 			if (REG(IF) & REG(IE) & BIT(i)) {
-				// Désactive les interruptions pour éviter les IRQ multiples,
-				// désactive le flag dans IF et saute à l'interruption
+				// Désactive le flag dans IF (IRQ traitée)
 				REG(IF) &= ~BIT(i);
-				IME = 0;
-				call(0x40 + 8 * i);
+				if (IME) {
+					// Désactive les interruptions pour éviter les IRQ multiples
+					IME = 0;
+					// Appelle le vecteur d'interruption
+					call(0x40 + 8 * i);
+				}
+				// Réveille le CPU
 				halted = 0;
-//				return 2;		// 2 cycles (appel - pc_read) - empirique
 			}
 		}
 	}
 	// Au repos, rien à faire
 	if (halted)
 		return 1;
-
-/*	cpu_disassemble(PC, temp_name, &temp_len, &temp);
-	if (!f)
-		f = fopen("C:\\shit-new.log", "w");
-	fprintf(f, "%i %04x %02x %s\n", cycleCount, PC, accu, temp_name);*/
 
 	// Décodage de l'opcode
 	opcode = pc_readb();
@@ -303,7 +299,7 @@ unsigned cpu_exec_instruction() {
 		case 0xf8:		// ld hl, sp + (signed)n
 			HL = add_sp_n();
 			return 3;
-			// GMB rotate and shift commands
+		// GMB rotate and shift commands
 		case 0x07:		// rlc a - rotate accu left
 			rotate_left(OP_R_ACCU, RM_RC);
 			flags.zero = 0;

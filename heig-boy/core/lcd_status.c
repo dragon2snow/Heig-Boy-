@@ -38,10 +38,11 @@ void lcd_tick(int elapsed, bool draw) {
 			case 0:		// hblank
 				// Prochaine ligne
 				if (++lcd_line == 144) {
-					// Balayage au fond du LCD => commencement de la vblank
+					// Balayage au fond du LCD => commencement de la VBLANK
 					if (lcd_enabled)
 						cpu_trigger_irq(INT_VBLANK);
 					lcd_status.mode = 1;
+					lcd_status.vcount_match = 0;
 					next_event += 456;
 				}
 				else {
@@ -49,13 +50,16 @@ void lcd_tick(int elapsed, bool draw) {
 					next_event += 80;
 				}
 				// La ligne demandée par l'utilisateur correspond
-				if (lcd_line == REG(LYC) && lcd_enabled)
+				if (lcd_line == REG(LYC) && lcd_enabled) {
+					lcd_status.vcount_match = 1;	// indique la corresp.
 					cpu_trigger_irq(INT_STAT);
+				}
 				break;
 			case 1:		// vblank
 				// Fin de la vblank? (10 lignes)
 				if (++lcd_line == 154) {
 					// On recommence en haut
+					lcd_begin();
 					lcd_status.mode = 0;
 					lcd_line = -1;
 					continue;

@@ -10,7 +10,7 @@
 /*
 	Registres
 */
-// Contenu du registre LCDC
+/** Contenu du registre LCDC. */
 typedef struct {
 	u8 bg_en: 1, obj_en: 1;
 	u8 obj_size: 1;
@@ -18,11 +18,12 @@ typedef struct {
 	u8 win_en: 1, win_map_addr: 1, enable: 1;
 } LCDC_t;
 #define lcd_ctrl	(*((LCDC_t*)&REG(LCDC)))
-// Ligne courante du balayage LCD
+/** Ligne courante du balayage LCD */
 #define cur_line	REG(LY)
+/** Défilement */
 #define scroll_x	REG(SCX)
 #define scroll_y	REG(SCY)
-// Structure des attributs d'un sprite
+/** Structure représentant les attributs d'un sprite. */
 typedef struct {
 	u8 y, x, tile;
 	struct obj_attr3_t {
@@ -53,6 +54,8 @@ static const u32 color_table[4] = {0xffd3de34, 0xffa5b52b, 0xff70831b, 0xff28444
 //static const u32 color_table[4] = {0xff00e7ff, 0xff009ac7, 0xff004d8f, 0xff000057};
 //static const u32 color_table[4] = {0xffffffff, 0xffaaaaaa, 0xff555555, 0xff000000};
 static u8 bg_palette[4], obj_palette[2][4];
+/** Ligne courante de dessin de la fenêtre */
+static u8 win_line;
 /** Bitmap 32 bits de 256x144 pixels */
 static u32 *lcd_buffer = NULL;
 // Taille d'une ligne de buffer
@@ -92,8 +95,11 @@ static void obj_render(u32 *pixel, u8 skipped_prio);
 	\param color_table table de traduction de couleur 2 bits <-> 32 bits
 	\param palette table of 4 colors to use for mapping the gray shades
 	\param tile_ptr pointeur sur le motif
+	\param write_transparent indique qu'il faut écrire les pixels de couleur
+		zéro (transparents) s'il n'y a encore rien en dessous
 */
-static void draw_tile(u32 *pixel, const u32 *color_table, const u8 *palette, const u8 *tile_ptr);
+static void draw_tile(u32 *pixel, const u32 *color_table, const u8 *palette,
+					  const u8 *tile_ptr, bool write_transparent);
 /** Retourne un motif de 8x8 au format GB 2 bits horizontalement.
 	\param in pointeur sur le motif (2 octets)
 	\param out destination (2 octets)
@@ -115,17 +121,10 @@ void lcd_draw_line() {
 	// Fait le rendu à proprement parler
 	backdrop_render(dest);
 	if (lcd_ctrl.enable) {			// LCD activé
-		unsigned i;
-		u32 bgwin[160 + 16] = {0};	// Tampon temporaire pour la fusion BG/WIN
-		bg_render(bgwin);			// Dessin du BG et de la fenêtre
-		win_render(bgwin);			// aplatie par dessus
-		// Priorité: objets avec prio=0, BG, fenêtre, objets avec prio=1
-		obj_render(dest, 0);
-		// Dessine la fusion BG/fenêtre sur le tampon écran
-		for (i = 8; i < 168; i++)
-			if (bgwin[i] != 0)		// opaque?
-				dest[i] = bgwin[i];
-		obj_render(dest, 1);
+		obj_render(dest, 0);		// Dessin des objets de basse priorité
+		bg_render(dest);			// Dessin du BG et de la fenêtre
+		win_render(dest);			// aplatie par dessus
+		obj_render(dest, 1);		// Et finalement les objets de haute prio.
 	}
 }
 
@@ -134,10 +133,14 @@ void lcd_draw_init() {
 		lcd_buffer = malloc(256 * 144 * sizeof(u32));
 }
 
+void lcd_begin() {
+	win_line = 0;
+}
+
 void backdrop_render(u32 *pixel) {
 	unsigned i;
 	for (i = 8; i < 168; i++)		// 8 pixels de libre à gauche et à droite
-		pixel[i] = color_table[bg_palette[0]];
+		pixel[i] = color_table[bg_palette[0]] & 0xffffff;
 }
 
 void bg_render(u32 *pixel) {
@@ -165,25 +168,28 @@ void bg_render(u32 *pixel) {
 		// Si le mode est 1, le n° de motif est signé, sinon non signé
 		int tile_no = lcd_ctrl.tile_addr ? (u8)tile_val : (s8)tile_val;
 		// Dessin du motif (ajout du n° de tile * 16 octets par motif)
-		draw_tile(pixel, color_table, bg_palette, tile_data + tile_no * 16);
+		draw_tile(pixel, color_table, bg_palette, tile_data + tile_no * 16, true);
 		pixel += 8;
 	}
 }
 
 void win_render(u32 *pixel) {
 	// Position (transformée dans le repère écran) du premier pixel à traiter
-	int offset_x = REG(WX) - 7, offset_y = cur_line - REG(WY);
+	int offset_x = REG(WX) - 7;
 	unsigned tile_offset_x = 0;
-	// Calcule l'adresse des objets en mémoire
+	// Calcule l'adresse des objets en mémoire, ici offset_y = win_line
 	u8 *tile_data = mem_vram + (lcd_ctrl.tile_addr ? 0 : 0x1000) +
-		mod8(offset_y) * 2;
+		mod8(win_line) * 2;
 	u8 *bg_map = mem_vram + (lcd_ctrl.win_map_addr ? 0x1C00 : 0x1800) +
-		div8(offset_y) * 32;
+		div8(win_line) * 32;
 	// Fenêtre désactivée ou ligne courante en dehors
-	if (!lcd_ctrl.win_en || offset_y < 0)
+	if (!lcd_ctrl.win_en || cur_line < REG(WY) || offset_x >= 160)
 		return;
 	// Laisse les 8 pixels de libre à gauche pour le dépassement
 	pixel += 8;
+	// La fenêtre est un peu spéciale: son n° de ligne n'est incrémenté que si
+	// elle est visible...
+	win_line++;
 	// Efface tout ce qui a été dessiné par le BG à partir du commencement
 	// de la fenêtre.
 	memset(pixel + offset_x, 0, 4 * (160 - offset_x));
@@ -194,7 +200,7 @@ void win_render(u32 *pixel) {
 		int tile_no = lcd_ctrl.tile_addr ? (u8)tile_val : (s8)tile_val;
 		u8 *tile_ptr = tile_data + tile_no * 16;
 		// Dessin + avancement de 8 pixels
-		draw_tile(pixel + offset_x, color_table, bg_palette, tile_ptr);
+		draw_tile(pixel + offset_x, color_table, bg_palette, tile_ptr, true);
 		offset_x += 8;
 	}
 }
@@ -236,7 +242,7 @@ void obj_render(u32 *pixel, u8 skipped_prio) {
 		else
 			pattern[0] = tile_ptr[0], pattern[1] = tile_ptr[1];
 		// Finalement, dessine le motif
-		draw_tile(pixel + x, color_table, obj_palette[attr.pal_num], pattern);
+		draw_tile(pixel + x, color_table, obj_palette[attr.pal_num], pattern, false);
 	}
 }
 
@@ -254,15 +260,22 @@ void flip_tile(u8 *out, const u8 *in) {
 		(in[1] & 0x02) << 5 |  in[1] << 7;
 }
 
-void draw_tile(u32 *pixel, const u32 *color_table, const u8 *palette, const u8 *tile_ptr) {
+void draw_tile(u32 *pixel, const u32 *color_table, const u8 *palette,
+			   const u8 *tile_ptr, bool write_transparent) {
 	unsigned j;
 	// Les pixels sont sur 2 plans: le premier octet indique le plan
 	// "foncé", le deuxième le plan "clair". Aucun = blanc, les 2 = noir.
 	u8 pat1 = tile_ptr[0], pat2 = tile_ptr[1];
 	for (j = 0; j < 8; j++) {
 		u8 color = (pat2 & 0x80) >> 6 | (pat1 & 0x80) >> 7;
-		if (color != 0)			// couleur 0 = transparente
+		// Pixel opaque (couleur non 0) -> on le dessine
+		if (color != 0)
 			*pixel = color_table[palette[color]];
+		// L'alpha (bits 31..24) indique que le pixel a été dessiné avec
+		// un pixel opaque, ce qui n'est pas le cas d'un pixel à couleur 0.
+		// => n'écrase pas les pixels déjà dessinés avec une couleur opaque.
+		else if (write_transparent && *pixel >> 24 == 0)
+			*pixel = color_table[palette[color]] & 0xffffff;
 		pixel++, pat1 <<= 1, pat2 <<= 1;
 	}
 }
@@ -280,8 +293,8 @@ void lcd_copy_to_buffer(u32 *dest, int destWidth) {
 		return;
 	for (i = 0; i < 144; i++) {
 		u32 *pixel = lcd_buffer_line(i) + 8;
-		for (j = 0; j < 160; j++)
-			*dest++ = *pixel++;
+		for (j = 0; j < 160; j++)		// Rend tous les pixels opaques
+			*dest++ = *pixel++ | 0xff000000;
 		dest += destWidth - 160;
 	}
 }
