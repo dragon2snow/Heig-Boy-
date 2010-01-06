@@ -16,6 +16,7 @@ EVT_BUTTON(KeysMap::keyUp, ConfigDialog::onConfigurableButton)
 	EVT_BUTTON(KeysMap::keyPause, ConfigDialog::onConfigurableButton)
 	EVT_BUTTON(KeysMap::keySaveState, ConfigDialog::onConfigurableButton)
 	EVT_BUTTON(KeysMap::keyLoadState, ConfigDialog::onConfigurableButton)
+	EVT_BUTTON(KeysMap::keyTurbo, ConfigDialog::onConfigurableButton)
 
 	EVT_BUTTON(idBtnSave, ConfigDialog::onSaveButton)
 	EVT_BUTTON(idBtnDefault, ConfigDialog::onDefaultButton)
@@ -257,31 +258,40 @@ void ConfigDialog::init()
 	wxBoxSizer *actionsBoxSizer = new wxBoxSizer(wxHORIZONTAL);
     sizer->Add(actionsBoxSizer, 0, wxALIGN_CENTER_HORIZONTAL | wxALL, 5);
 
+	//Bouton 'Default'
+	btnDefault = new wxButton(this, idBtnDefault, _("De&fault"));
+	actionsBoxSizer->Add(btnDefault, 0, wxALIGN_CENTER_VERTICAL | wxLEFT | wxRIGHT, 30);
+
 	//Bouton 'Save'
 	btnSave = new wxButton(this, idBtnSave, _("&Save"));
-	actionsBoxSizer->Add(btnSave, 0, wxALIGN_CENTER_VERTICAL | wxLEFT | wxRIGHT, 5);
+	actionsBoxSizer->Add(btnSave, 0, wxALIGN_CENTER_VERTICAL | wxLEFT | wxRIGHT, 2);
 
-	//Bouton 'Default'
-	btnDefault = new wxButton(this, idBtnDefault, _("&Default"));
-	actionsBoxSizer->Add(btnDefault, 0, wxALIGN_CENTER_VERTICAL | wxLEFT | wxRIGHT, 5);
-
-	//Bouton 'Default'
-	btnCancel = new wxButton(this, idBtnDefault, _("&Cancel"));
-	actionsBoxSizer->Add(btnCancel, 0, wxALIGN_CENTER_VERTICAL | wxLEFT | wxRIGHT, 5);
+	//Bouton 'Cancel'
+	btnCancel = new wxButton(this, idBtnCancel, _("&Cancel"));
+	actionsBoxSizer->Add(btnCancel, 0, wxALIGN_CENTER_VERTICAL | wxLEFT | wxRIGHT, 2);
 
 }
 
 
 void ConfigDialog::onSaveButton(wxCommandEvent &event)
 {
+	//Modif des touches du parent
+	mapParent.copyFromMap(local);
+
+	Close();
 }
 
 void ConfigDialog::onDefaultButton(wxCommandEvent &event)
 {
+	//Remise à zéro des touches
+	local.reset();
+
+	showButtonsValues();
 }
 
 void ConfigDialog::onCancelButton(wxCommandEvent &event)
 {
+	Close();
 }
 
 void ConfigDialog::onConfigurableButton(wxCommandEvent &event)

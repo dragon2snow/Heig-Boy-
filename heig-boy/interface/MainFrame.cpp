@@ -62,6 +62,10 @@ Constructeur
 MainWindow::MainWindow()
 : wxFrame(NULL, wxID_ANY, S("HEIG-Boy"), wxDefaultPosition, wxDefaultSize, wxDEFAULT_FRAME_STYLE)
 {
+	//Ecran noir au démarage
+	for (int i=0; i<144 * 160; ++i)
+		lcdPixels[i]= 0;
+
 	pauseGame = false;
 
 	//Création des menus
@@ -226,10 +230,16 @@ void MainWindow::onKeyUp(wxKeyEvent& event)
 	}
 }
 
-bool MainWindow::askQuit()
+bool MainWindow::testQuit()
 {
-	//TODO
-	//Demander une confirmation
+	if (refreshManager->isPlaying())
+	{
+		return wxMessageBox(_("Really exit heig-boy ?"),
+                                      wxT("Confirmation"),
+									  wxYES_NO | wxICON_QUESTION) == wxYES;
+	}
+
+	//Pas de question si on ne joue pas
 	return true;
 }
 
@@ -238,25 +248,41 @@ Appelé lorsque la fenêtre se ferme.
 */
 void MainWindow::onClose(wxCloseEvent &event) 
 {
-	// TODO sauver la sram si modifiée
-	if (askQuit())
+	//Peut-on annuler l'évènement
+	if (event.CanVeto())
 	{
-		//TODO Trouver un moyen plus propre
-		refreshManager->Kill();
-		Destroy();
+		// TODO sauver la sram si modifiée
+		if (!testQuit())
+		{
+			event.Veto();
+
+			return;
+			
+		}
 	}
-	else
-	{
-		//Annuler la femeture de la fenêtre
-	}
+	
+	//Fin du thread d'affichage
+	refreshManager->endGame();
+	refreshManager->mutexRomLoaded.Unlock();
+	refreshManager->pause(false);
+	//Attend la fin du thread
+	refreshManager->Wait();
+	//Ferme l'interface principale
+	Destroy();
+
 }
 
 void MainWindow::mnuClose(wxCommandEvent& WXUNUSED(event))
 {
-	if (askQuit())
+	if (testQuit())
 	{
-		//TODO Trouver un moyen plus propre
-		refreshManager->Kill();
+		//Fin du thread d'affichage
+		refreshManager->endGame();
+		refreshManager->mutexRomLoaded.Unlock();
+		refreshManager->pause(false);
+		//Attend la fin du thread
+		refreshManager->Wait();
+		//Ferme l'interface principale
 		Destroy();
 	}
 }
@@ -289,8 +315,8 @@ void MainWindow::mnuAbout(wxCommandEvent& WXUNUSED(event))
 	info.AddDeveloper(_T("Raphael Plomb"));
 	info.AddDeveloper(_T("Julien Rinalidini"));
 
-	//TODO Résoudre problème avec le Linker...
-	//wxAboutBox(info);
+	//Afficher About
+	wxAboutBox(info);
 
 	refreshManager->pause(false);
 }

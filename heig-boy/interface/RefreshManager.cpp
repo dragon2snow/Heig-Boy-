@@ -14,13 +14,14 @@ extern "C" {
 }
 
 RefreshManager::RefreshManager(MainWindow *frame)
-: wxThread(), frame(frame) {
+: wxThread(wxTHREAD_JOINABLE), frame(frame) {
 
 	fastMode = false;
 	romLoaded = false;
 	//permet d'attendre le chargement d'une ROM au lancement
 	mutexRomLoaded.Lock();
 	pauseActive = false;
+	fin = false;
 
 	Create();
 	Run();
@@ -33,12 +34,14 @@ void *RefreshManager::Entry() {
 	sound_driver_init();
 	synchroInit();
 	// Boucle principale
-	while (true) {
+	while (!fin) {
 		//Attendre qu'une ROM soit chargée
 		if (!romLoaded)
 		{
 			mutexRomLoaded.Lock();
 			mutexRomLoaded.Unlock();
+			if (fin)
+				break;
 		}
 		
 		//Se mettre en pause si nécessaire
@@ -46,6 +49,8 @@ void *RefreshManager::Entry() {
 		{
 			mutexPause.Lock();
 			mutexPause.Unlock();
+			if (fin)
+				break;
 		}
 
 		// Fait avancer le CPU d'une image
@@ -80,7 +85,12 @@ void *RefreshManager::Entry() {
 bool RefreshManager::synchroDo() {
 	unsigned long long curTime;
 	// Attend que 16 millisecondes se soient écoulées
-	do	curTime = getTime();
+	// Attente active nécessaire, car le noyau Windows est
+	// cadencé à 20 millisec
+	do
+	{
+		curTime = getTime();
+	}
 	while (curTime - lastTime < 16667);
 	lastTime += 16667;
 	// En retard?
@@ -137,6 +147,16 @@ void RefreshManager::pause(bool active)
 void RefreshManager::turbo(bool active)
 {
 	fastMode = active;
+}
+
+bool RefreshManager::isPlaying()
+{
+	return romLoaded;
+}
+
+void RefreshManager::endGame()
+{
+	fin = true;
 }
 
 #ifdef WIN32

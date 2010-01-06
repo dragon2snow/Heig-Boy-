@@ -11,6 +11,8 @@
 
 class RefreshManager : public wxThread
 {
+	friend class MainWindow;
+
     MainWindow *frame;
 	#ifdef WIN32
 	unsigned long long frequency;
@@ -21,6 +23,7 @@ class RefreshManager : public wxThread
 	wxMutex mutexRomLoaded;
 	bool pauseActive;
 	wxMutex mutexPause;
+	bool fin;
 
 public:
 	wxMutex mutexInFrame;
@@ -65,8 +68,20 @@ public:
 	void loadRom();
 
 	/**
+	Permet de savoir s'il on est entrain de jouer
+	*/
+	bool isPlaying();
+
+	/**
+	Met fin au thread proprement
+	*/
+	void endGame();
+
+	/**
 	 Point d'entrée du thread
 	 */
 	virtual void *Entry();
+
+	
 };
 

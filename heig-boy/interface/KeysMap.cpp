@@ -13,14 +13,14 @@ void KeysMap::reset()
 	keyMap[keyDown] = (wxKeyCode)'S';
 	keyMap[keyLeft] = (wxKeyCode)'A';
 	keyMap[keyRight] = (wxKeyCode)'D';
-	keyMap[keyA] = WXK_RETURN;
-	keyMap[keyB] = WXK_SHIFT;
-	keyMap[keyStart] = WXK_SPACE;
+	keyMap[keyA] = (wxKeyCode)'K';
+	keyMap[keyB] = (wxKeyCode)'L';
+	keyMap[keyStart] = WXK_RETURN;
 	keyMap[keySelect] = WXK_BACK;
 	keyMap[keyPause] = (wxKeyCode)'P';
 	keyMap[keySaveState] = WXK_F5;
 	keyMap[keyLoadState] = WXK_F6;
-	keyMap[keyTurbo] = WXK_TAB;
+	keyMap[keyTurbo] = (wxKeyCode)'T';
 }
 
 bool KeysMap::isButton(KeysMap::Buttons button, long code) const

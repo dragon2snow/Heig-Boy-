@@ -40,9 +40,11 @@ class MainWindow : public wxFrame
 	bool pauseGame;
 	
 	/**
-	 Demande une confirmation avant la fermeture
+	 Demande une confirmation avant la fermeture lorsque
+	 l'utilisateur joue.
+	 \return La réponse de l'utilisateur. True s'il ne joue pas
 	 */
-	bool askQuit();
+	bool testQuit();
 
 public:
 	// Constructeur
