@@ -22,7 +22,7 @@ class MainWindow : public wxFrame
 	class RefreshManager *refreshManager;
 
 	//Les touches du gameboy
-	class KeysMap *keys;
+	KeysMap *keys;
 	
 	//Identifiant des menus
 	enum {

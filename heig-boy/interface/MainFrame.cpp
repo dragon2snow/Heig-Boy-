@@ -8,6 +8,7 @@
 #include "KeysMap.h"
 #include "ConfigDialog.h"
 
+
 extern "C" 
 {
 #include "../core/io.h"
@@ -92,8 +93,9 @@ MainWindow::MainWindow()
 	//TODO
 	//Vérifier si le fichier de config existe, si c'est le cas,
 	//récupérer la configuration des touches
-	
 	keys = new KeysMap();
+
+	keys->load("config.cfg");
 
 	refreshManager = new RefreshManager(this);
 	SetClientSize(160 * 2, 144 * 2);

@@ -1,4 +1,6 @@
 #include "KeysMap.h"
+#include <fstream>
+#include <iostream>
 
 
 KeysMap::KeysMap()
@@ -37,22 +39,33 @@ void KeysMap::copyFromMap(const KeysMap& keys)
 
 }
 
-std::ostream& operator << (std::ostream& os, KeysMap& keys)
+void KeysMap::save(const char* fileName)
 {
-	//Ecriture de la valeur de tous les boutons
-	for (int i=0; i<12; ++i)
-		os << keys.keyMap[i] << ' ';
-	
+	std::ofstream file(fileName);
 
-	return os;
+	if (!file.bad())
+	{
+		for (int i=0; i<12; ++i)
+		{
+			file << keyMap[i] << ' ';
+		}
 
+		file << '\n';
+		file.close();
+	}
 }
 
-std::istream& operator >> (std::istream& is, KeysMap& keys)
+void KeysMap::load(const char* fileName)
 {
-	//Lecture de la valeur de tous les boutons
-	for (int i=0; i<12; ++i)
-		is >> keys.keyMap[i];
+	std::ifstream file(fileName);
 
-	return is;
+	if (!file.bad())
+	{
+		for (int i=0; i<12; ++i)
+		{
+			file >> keyMap[i];
+		}
+
+		file.close();
+	}
 }

@@ -1,4 +1,3 @@
-
 #include "wx/wx.h"
 
 #include "ConfigDialog.h"
@@ -277,6 +276,9 @@ void ConfigDialog::onSaveButton(wxCommandEvent &event)
 {
 	//Modif des touches du parent
 	mapParent.copyFromMap(local);
+
+	//Sauvegarde dans le fichier CFG
+	local.save("config.cfg");
 
 	Close();
 }

@@ -14,8 +14,6 @@ Représente les boutons.
 class KeysMap
 {
 	friend class ConfigDialog;
-	friend std::ostream& operator<<(std::ostream &, const KeysMap &);
-	friend std::istream& operator>>(std::istream &, KeysMap &);
 
 public:
 	//Ordonnancement des boutons
@@ -56,20 +54,17 @@ public:
 
 	//Les codes des boutons bindés
 	long keyMap[12];
+
+	/**
+	Permet de sauvegarder les touches dans un fichier CFG.
+	\param fileName Le nom du fichier
+	*/
+	void save(const char* fileName);
+	
+	/**
+	Permet de charger une config de touches depuis un fichier
+	CFG.
+	\param fileName Le nom du fichier
+	*/
+	void load(const char* fileName);
 };
-
-/**
-Permet d'écrire un objet KeysMap dans un flux ostream
-\param os Le flux de sortie
-\parma keys La KeysMap à écrire
-*/
-std::ostream& operator<<(std::ostream &os, const KeysMap &keys);
-
-/**
-Permet d'initialiser une KeysMap depuis un flux d'entrée
-
-\param is Le flux
-\param keys La KeysMap à initialiser
-*/
-std::istream& operator>>(std::istream &is, KeysMap &keys);
-
