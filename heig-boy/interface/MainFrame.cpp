@@ -6,12 +6,14 @@
 #include "MainFrame.h"
 #include "RefreshManager.h"
 #include "KeysMap.h"
+#include "ConfigDialog.h"
 
 extern "C" 
 {
 #include "../core/io.h"
 #include "../core/save.h"
 }
+
 
 #define S(x) wxString::FromAscii(x)
 
@@ -87,6 +89,7 @@ MainWindow::MainWindow()
 	//Vérifier si le fichier de config existe, si c'est le cas,
 	//récupérer la configuration des touches
 	
+	keys = new KeysMap();
 
 	refreshManager = new RefreshManager(this);
 	SetClientSize(160 * 2, 144 * 2);
@@ -130,46 +133,39 @@ Gestion générale des touches
 **/
 void MainWindow::keyEvent(long code, bool state) 
 {
-	if (keys.isButton(KeysMap::keyUp, code))
+	if (keys->isButton(KeysMap::keyUp, code))
 	{
 		io_key_press(GBK_UP, state);
-		return;
 	}
-	if (keys.isButton(KeysMap::keyDown, code))
+	if (keys->isButton(KeysMap::keyDown, code))
 	{
 		io_key_press(GBK_DOWN, state);
-		return;
 	}
-	if (keys.isButton(KeysMap::keyLeft, code) )
+	if (keys->isButton(KeysMap::keyLeft, code) )
 	{
 		io_key_press(GBK_LEFT, state);
-		return;
 	}
-	if (keys.isButton(KeysMap::keyRight, code) )
+	if (keys->isButton(KeysMap::keyRight, code) )
 	{
 		io_key_press(GBK_RIGHT, state);
-		return;
 	}
-	if (keys.isButton(KeysMap::keyA, code) )
+	if (keys->isButton(KeysMap::keyA, code) )
 	{
 		io_key_press(GBK_A, state);
-		return;
 	}
-	if (keys.isButton(KeysMap::keyB, code) )
+	if (keys->isButton(KeysMap::keyB, code) )
 	{
 		io_key_press(GBK_B, state);
-		return;
 	}
-	if (keys.isButton(KeysMap::keyStart, code) )
+	if (keys->isButton(KeysMap::keyStart, code) )
 	{
 		io_key_press(GBK_START, state);
-		return;
 	}
-	if (keys.isButton(KeysMap::keySelect, code) )
+	if (keys->isButton(KeysMap::keySelect, code) )
 	{
 		io_key_press(GBK_SELECT, state);
-		return;
-	}	
+	}
+
 	
 }
 
@@ -180,31 +176,36 @@ Appelé lorsqu'une touche est enfoncée.
 */
 void MainWindow::onKeyDown(wxKeyEvent& event) 
 {
-	keyEvent(event.m_keyCode, true);
-
 	// Touches spéciales
-	if (keys.isButton(KeysMap::keyPause, event.m_keyCode))
+	if (keys->isButton(KeysMap::keyPause, event.m_keyCode))
 	{
 		pauseGame = !pauseGame;
 		refreshManager->pause(pauseGame);
 	}
-	if (keys.isButton(KeysMap::keySaveState, event.m_keyCode)) 
+	else if (keys->isButton(KeysMap::keySaveState, event.m_keyCode)) 
 	{
 		// Un save state n'est pas cohérent en milieu de frame...
 		refreshManager->mutexInFrame.Lock();
 		save_state(0);
 		save_sram();
 		refreshManager->mutexInFrame.Unlock();
-		myStatusBar->SetStatusText(_("Etat sauvegardé"));
+		myStatusBar->SetStatusText(_("Etat sauvegarde"));
 	}
-	if(keys.isButton(KeysMap::keyLoadState,event.m_keyCode))
+	else if(keys->isButton(KeysMap::keyLoadState,event.m_keyCode))
 	{
 		// Pareil pour le chargement
 		refreshManager->mutexInFrame.Lock();
 		load_state(0);
 		refreshManager->mutexInFrame.Unlock();
-		myStatusBar->SetStatusText(_("Etat précédent chargé"));
-		
+		myStatusBar->SetStatusText(_("Etat precedent charge"));
+	}
+	else if(keys->isButton(KeysMap::keyTurbo, event.m_keyCode))
+	{
+		refreshManager->turbo(true);
+	}
+	else //Touche de la GB
+	{
+		keyEvent(event.m_keyCode, true);
 	}
 }
 
@@ -215,11 +216,19 @@ Appelé lorsqu'une touche est relachée
 */
 void MainWindow::onKeyUp(wxKeyEvent& event) 
 {
-	keyEvent(event.m_keyCode, false);
+	if(keys->isButton(KeysMap::keyTurbo, event.m_keyCode))
+	{
+		refreshManager->turbo(false);
+	}
+	else
+	{
+		keyEvent(event.m_keyCode, false);
+	}
 }
 
 bool MainWindow::askQuit()
 {
+	//TODO
 	//Demander une confirmation
 	return true;
 }
@@ -257,7 +266,10 @@ Permet de configurer les touches
 */
 void MainWindow::mnuConfiguration(wxCommandEvent& WXUNUSED(event))
 {
+	refreshManager->pause(true);
 	//Afficher la fenêtre de configuration
+	(new ConfigDialog(this, *keys))->ShowModal();
+	refreshManager->pause(false);
 }
 
 /**
@@ -265,6 +277,7 @@ Affiche la fenêtre about
 */
 void MainWindow::mnuAbout(wxCommandEvent& WXUNUSED(event))
 {
+	refreshManager->pause(true);
 	//Afficher la fenêtre A propos
 	wxAboutDialogInfo info;
 	info.SetName(_("HEIG-BOY Emulateur Game-Boy"));
@@ -278,6 +291,8 @@ void MainWindow::mnuAbout(wxCommandEvent& WXUNUSED(event))
 
 	//TODO Résoudre problème avec le Linker...
 	//wxAboutBox(info);
+
+	refreshManager->pause(false);
 }
 
 /**

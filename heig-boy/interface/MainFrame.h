@@ -18,10 +18,11 @@ public:
 class MainWindow : public wxFrame
 {
 	u32 lcdPixels[144 * 160];
+
 	class RefreshManager *refreshManager;
 
 	//Les touches du gameboy
-	KeysMap keys;
+	class KeysMap *keys;
 	
 	//Identifiant des menus
 	enum {

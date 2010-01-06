@@ -30,7 +30,7 @@ void *RefreshManager::Entry() {
 	bool retard = false;
 	int skippedFrames = 0;
 	// Initialisation
-	//sound_driver_init();
+	sound_driver_init();
 	synchroInit();
 	// Boucle principale
 	while (true) {
@@ -132,6 +132,11 @@ void RefreshManager::pause(bool active)
 		pauseActive = false;
 		mutexPause.Unlock();
 	}
+}
+
+void RefreshManager::turbo(bool active)
+{
+	fastMode = active;
 }
 
 #ifdef WIN32

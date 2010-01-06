@@ -31,6 +31,12 @@ public:
 	 \param active Pour activer ou désactiver la pause
 	 */
 	void pause(bool active);
+
+	/**
+	 Mode turbo on/off
+	 \param active Pour activer ou désactiver le turbo
+	 */
+	void turbo(bool active);
 	
 	/**
 	 Constructeur
