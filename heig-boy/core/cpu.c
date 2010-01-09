@@ -192,6 +192,7 @@ unsigned cpu_exec_instruction() {
 	int temp, temp_len;
 
 	// Interruptions en attente?
+	// Kirby's Dream Land 2: en HALT les IRQ sont appelées même si IME inactif
 	if ((IME || halted) && (REG(IF) & REG(IE))) {
 		int i;
 		// Teste les bits actifs
@@ -200,12 +201,10 @@ unsigned cpu_exec_instruction() {
 			if (REG(IF) & REG(IE) & BIT(i)) {
 				// Désactive le flag dans IF (IRQ traitée)
 				REG(IF) &= ~BIT(i);
-				if (IME) {
-					// Désactive les interruptions pour éviter les IRQ multiples
-					IME = 0;
-					// Appelle le vecteur d'interruption
-					call(0x40 + 8 * i);
-				}
+				// Désactive les interruptions pour éviter les IRQ multiples
+				IME = 0;
+				// Appelle le vecteur d'interruption
+				call(0x40 + 8 * i);
 				// Réveille le CPU
 				halted = 0;
 			}

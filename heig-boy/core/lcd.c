@@ -4,6 +4,7 @@
 #include "lcd.h"
 #include "mem.h"
 #include "ports.h"
+#include "../color-it/user.h"
 #include <stdlib.h>
 #include <string.h>
 
@@ -48,11 +49,6 @@ typedef struct {
 /*
 	Buffer écran
 */
-// Temporaire: table de conversion des couleurs (GB <-> 32 bits)
-static const u32 color_table[4] = {0xffd3de34, 0xffa5b52b, 0xff70831b, 0xff284440};
-//static const u32 color_table[4] = {0xffff00ff, 0xffc000c0, 0xff800080, 0xff400040};
-//static const u32 color_table[4] = {0xff00e7ff, 0xff009ac7, 0xff004d8f, 0xff000057};
-//static const u32 color_table[4] = {0xffffffff, 0xffaaaaaa, 0xff555555, 0xff000000};
 static u8 bg_palette[4], obj_palette[2][4];
 /** Ligne courante de dessin de la fenêtre */
 static u8 win_line;
@@ -140,7 +136,7 @@ void lcd_begin() {
 void backdrop_render(u32 *pixel) {
 	unsigned i;
 	for (i = 8; i < 168; i++)		// 8 pixels de libre à gauche et à droite
-		pixel[i] = color_table[bg_palette[0]] & 0xffffff;
+		pixel[i] = ColorIt_palette[bg_palette[0]];
 }
 
 void bg_render(u32 *pixel) {
@@ -152,8 +148,8 @@ void bg_render(u32 *pixel) {
 	// registres de configuration. Ajoute également l'offset depuis le haut de
 	// l'écran: 1 ligne pour 8 pixels dans la map, et une ligne (2 octets) par
 	// pixel dans le motif, modulo la taille du motif (8 pixels). Voir rapport.
-	u8 *tile_data = mem_vram + (lcd_ctrl.tile_addr ? 0 : 0x1000) +
-		mod8(offset_y) * 2;
+	u8 *tile_data = mem_vram + mod8(offset_y) * 2,
+		*custom_data = ColorIt_tileData + mod8(offset_y) * 2;
 	u8 *bg_map = mem_vram + (lcd_ctrl.bg_map_addr ? 0x1C00 : 0x1800) +
 		div8(offset_y) * 32;
 	// BG désactivé -> rien à faire
@@ -164,11 +160,18 @@ void bg_render(u32 *pixel) {
 	// Dessin de la map à proprement parler
 	for (i = 0; i < 21; i++) {
 		// Lit la map pour obtenir le n° de motif à cet endroit
-		u8 tile_val = bg_map[mod32(tile_offset_x++)];
+		u8 tile_val = bg_map[mod32(tile_offset_x++)], *data = tile_data;
 		// Si le mode est 1, le n° de motif est signé, sinon non signé
-		int tile_no = lcd_ctrl.tile_addr ? (u8)tile_val : (s8)tile_val;
+		u16 tile_no = lcd_ctrl.tile_addr ? (u8)tile_val : (256 + (s8)tile_val);
+		// Calcul de la palette en tenant compte de ColorIt
+		u32 *palette = ColorIt_palette + 4 * ColorIt_tilePalette[tile_no];
+		// Tile perso ColorIt => utilise un autre jeu de données
+		if (ColorIt_tileCustom[tile_no] != 0xffff) {
+			data = custom_data;
+			tile_no = ColorIt_tileCustom[tile_no];
+		}
 		// Dessin du motif (ajout du n° de tile * 16 octets par motif)
-		draw_tile(pixel, color_table, bg_palette, tile_data + tile_no * 16, true);
+		draw_tile(pixel, palette, bg_palette, data + tile_no * 16, true);
 		pixel += 8;
 	}
 }
@@ -178,8 +181,8 @@ void win_render(u32 *pixel) {
 	int offset_x = REG(WX) - 7;
 	unsigned tile_offset_x = 0;
 	// Calcule l'adresse des objets en mémoire, ici offset_y = win_line
-	u8 *tile_data = mem_vram + (lcd_ctrl.tile_addr ? 0 : 0x1000) +
-		mod8(win_line) * 2;
+	u8 *tile_data = mem_vram + mod8(win_line) * 2,
+		*custom_data = ColorIt_tileData + mod8(win_line) * 2;
 	u8 *bg_map = mem_vram + (lcd_ctrl.win_map_addr ? 0x1C00 : 0x1800) +
 		div8(win_line) * 32;
 	// Fenêtre désactivée ou ligne courante en dehors
@@ -196,11 +199,17 @@ void win_render(u32 *pixel) {
 	// Dessine jusqu'à la fin de la fenêtre (toujours tout à droite de l'écran)
 	while (offset_x < 160) {
 		// Voir bg_render pour plus d'infos
-		u8 tile_val = bg_map[mod32(tile_offset_x++)];
-		int tile_no = lcd_ctrl.tile_addr ? (u8)tile_val : (s8)tile_val;
-		u8 *tile_ptr = tile_data + tile_no * 16;
+		u8 tile_val = bg_map[mod32(tile_offset_x++)], *data = tile_data;
+		u16 tile_no = lcd_ctrl.tile_addr ? (u8)tile_val : (256 + (s8)tile_val);
+		// Calcul de la palette en tenant compte de ColorIt
+		u32 *palette = ColorIt_palette + 4 * ColorIt_tilePalette[tile_no];
+		// Tile perso ColorIt => utilise un autre jeu de données
+		if (ColorIt_tileCustom[tile_no] != 0xffff) {
+			data = custom_data;
+			tile_no = ColorIt_tileCustom[tile_no];
+		}
 		// Dessin + avancement de 8 pixels
-		draw_tile(pixel + offset_x, color_table, bg_palette, tile_ptr, true);
+		draw_tile(pixel + offset_x, palette, bg_palette, data + 16 * tile_no, true);
 		offset_x += 8;
 	}
 }
@@ -224,25 +233,35 @@ void obj_render(u32 *pixel, u8 skipped_prio) {
 		// Note: la GB soustrait 16 à la position y et 8 à la position x
 		u8 y = cur_line - oam[i].y + 16;	// ligne courante à dessiner
 		// Pas besoin de -8, le buffer a déjà 8 pixels invisibles à gauche
-		u8 x = oam[i].x;
-		u8 *tile_ptr = mem_vram + 16 * (oam[i].tile & tile_mask);
+		u8 x = oam[i].x, tile = oam[i].tile & tile_mask;
+		u8 pattern[2], *tile_ptr = mem_vram;
+		u32 *palette;
 		struct obj_attr3_t attr = oam[i].attr;
-		u8 pattern[2];
-		if (attr.prio == skipped_prio)	// pas la priorité voulue
-			continue;
-		if (y >= obj_height)	// en fait le test devrait avoir || y < 0 mais
+		if (attr.prio == skipped_prio)
+			continue;			// Pas la priorité voulue
+		if (y >= obj_height)	// En fait le test devrait avoir || y < 0 mais
 			continue;			// comme y est non signé il revient à 255
-		if (x == 0 || x >= 168)			// invisible
+		if (x == 0 || x >= 168)	// Invisible...
 			continue;
-		if (attr.flip_y)		// retournement vertical
-			y = obj_height - 1 - y;	
-		tile_ptr += y * 2;		// plus bas dans le motif
-		if (attr.flip_x)		// Retourne éventuellement le motif
+		// Retournement vertical
+		if (attr.flip_y)
+			y = obj_height - 1 - y;
+		// Calcule la palette en tenant compte de ColorIt
+		palette = ColorIt_palette + 4 * ColorIt_tilePalette[tile + y / 8];
+		// Tile perso?
+		if (ColorIt_tileCustom[tile + y / 8] != 0xffff) {
+			tile = ColorIt_tileCustom[tile + y / 8] & tile_mask;
+			tile_ptr = ColorIt_tileData;
+		}
+		// Pointe sur la bonne tile, avec un offset de y lignes
+		tile_ptr += 16 * tile + y * 2;
+		// Retourne éventuellement le motif
+		if (attr.flip_x)
 			flip_tile(pattern, tile_ptr);
 		else
 			pattern[0] = tile_ptr[0], pattern[1] = tile_ptr[1];
 		// Finalement, dessine le motif
-		draw_tile(pixel + x, color_table, obj_palette[attr.pal_num], pattern, false);
+		draw_tile(pixel + x, palette, obj_palette[attr.pal_num], pattern, false);
 	}
 }
 
@@ -268,14 +287,14 @@ void draw_tile(u32 *pixel, const u32 *color_table, const u8 *palette,
 	u8 pat1 = tile_ptr[0], pat2 = tile_ptr[1];
 	for (j = 0; j < 8; j++) {
 		u8 color = (pat2 & 0x80) >> 6 | (pat1 & 0x80) >> 7;
-		// Pixel opaque (couleur non 0) -> on le dessine
+		// Pixel opaque (couleur non 0) -> dessine avec l'alpha à 100%
 		if (color != 0)
-			*pixel = color_table[palette[color]];
+			*pixel = color_table[palette[color]] | 0xff000000;
 		// L'alpha (bits 31..24) indique que le pixel a été dessiné avec
 		// un pixel opaque, ce qui n'est pas le cas d'un pixel à couleur 0.
 		// => n'écrase pas les pixels déjà dessinés avec une couleur opaque.
 		else if (write_transparent && *pixel >> 24 == 0)
-			*pixel = color_table[palette[color]] & 0xffffff;
+			*pixel = color_table[palette[color]];
 		pixel++, pat1 <<= 1, pat2 <<= 1;
 	}
 }

@@ -1,5 +1,5 @@
-#include "core/emu.h"
-#include "core/sound.h"
+#include "../core/emu.h"
+#include "../core/sound.h"
 #include <windows.h>
 #include <mmsystem.h>
 #include <stdio.h>

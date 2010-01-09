@@ -43,15 +43,15 @@
 				Optimization="0"
 				InlineFunctionExpansion="0"
 				FavorSizeOrSpeed="0"
-				AdditionalIncludeDirectories="core;win32"
-				PreprocessorDefinitions="WIN32;_DEBUG;_CONSOLE;_CRT_SECURE_NO_WARNINGS"
+				AdditionalIncludeDirectories="win32;C:\wxWidgets-2.8.10\include"
+				PreprocessorDefinitions="WIN32;_DEBUG;_WINDOWS;_CRT_SECURE_NO_WARNINGS"
 				MinimalRebuild="true"
 				BasicRuntimeChecks="3"
 				RuntimeLibrary="3"
 				UsePrecompiledHeader="0"
 				WarningLevel="3"
 				DebugInformationFormat="4"
-				CompileAs="1"
+				CompileAs="0"
 			/>
 			<Tool
 				Name="VCManagedResourceCompilerTool"
@@ -64,10 +64,11 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="winmm.lib"
+				AdditionalDependencies="wxmsw28d_core.lib wxbase28d.lib winmm.lib comctl32.lib rpcrt4.lib"
 				LinkIncremental="2"
+				AdditionalLibraryDirectories="C:\wxWidgets-2.8.10\lib\vc_lib"
 				GenerateDebugInformation="true"
-				SubSystem="1"
+				SubSystem="2"
 				TargetMachine="1"
 			/>
 			<Tool
@@ -120,13 +121,15 @@
 				Optimization="2"
 				InlineFunctionExpansion="2"
 				EnableIntrinsicFunctions="true"
-				AdditionalIncludeDirectories="core;win32"
-				PreprocessorDefinitions="WIN32;NDEBUG;_CONSOLE;_CRT_SECURE_NO_WARNINGS"
-				RuntimeLibrary="0"
+				FavorSizeOrSpeed="1"
+				AdditionalIncludeDirectories="win32;C:\wxWidgets-2.8.10\include"
+				PreprocessorDefinitions="WIN32;NDEBUG;_WINDOWS;_CRT_SECURE_NO_WARNINGS"
+				RuntimeLibrary="2"
 				EnableFunctionLevelLinking="true"
 				UsePrecompiledHeader="0"
 				WarningLevel="3"
 				DebugInformationFormat="3"
+				CompileAs="0"
 			/>
 			<Tool
 				Name="VCManagedResourceCompilerTool"
@@ -139,10 +142,13 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="winmm.lib"
+				AdditionalDependencies="wxmsw28_core.lib wxbase28.lib winmm.lib comctl32.lib rpcrt4.lib"
 				LinkIncremental="1"
+				AdditionalLibraryDirectories="C:\wxWidgets-2.8.10\lib\vc_lib"
+				IgnoreAllDefaultLibraries="false"
+				IgnoreDefaultLibraryNames=""
 				GenerateDebugInformation="true"
-				SubSystem="1"
+				SubSystem="2"
 				OptimizeReferences="2"
 				EnableCOMDATFolding="2"
 				TargetMachine="1"
@@ -181,10 +187,6 @@
 			<Filter
 				Name="core"
 				>
-				<File
-					RelativePath=".\core\color_it.c"
-					>
-				</File>
 				<File
 					RelativePath=".\core\cpu.c"
 					>
@@ -238,11 +240,55 @@
 				Name="win32"
 				>
 				<File
-					RelativePath=".\win32\main-sound.c"
+					RelativePath=".\win32\os_specific.c"
 					>
 				</File>
 				<File
-					RelativePath=".\win32\os_specific.c"
+					RelativePath=".\win32\sound-driver.c"
+					>
+				</File>
+			</Filter>
+			<Filter
+				Name="interface"
+				>
+				<File
+					RelativePath=".\interface\ConfigDialog.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\interface\KeysMap.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\interface\MainFrame.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\interface\RefreshManager.cpp"
+					>
+				</File>
+			</Filter>
+			<Filter
+				Name="color-it"
+				>
+				<File
+					RelativePath=".\color-it\crc32.c"
+					>
+				</File>
+				<File
+					RelativePath=".\color-it\lang.c"
+					>
+				</File>
+				<File
+					RelativePath=".\color-it\parser.c"
+					>
+				</File>
+				<File
+					RelativePath=".\color-it\system.c"
+					>
+				</File>
+				<File
+					RelativePath=".\color-it\user.c"
 					>
 				</File>
 			</Filter>
@@ -255,10 +301,6 @@
 			<Filter
 				Name="core"
 				>
-				<File
-					RelativePath=".\core\color_it.h"
-					>
-				</File>
 				<File
 					RelativePath=".\core\common.h"
 					>
@@ -313,6 +355,50 @@
 				>
 				<File
 					RelativePath=".\win32\os_specific.h"
+					>
+				</File>
+			</Filter>
+			<Filter
+				Name="interface"
+				>
+				<File
+					RelativePath=".\interface\ConfigDialog.h"
+					>
+				</File>
+				<File
+					RelativePath=".\interface\KeysMap.h"
+					>
+				</File>
+				<File
+					RelativePath=".\interface\MainFrame.h"
+					>
+				</File>
+				<File
+					RelativePath=".\interface\RefreshManager.h"
+					>
+				</File>
+			</Filter>
+			<Filter
+				Name="color-it"
+				>
+				<File
+					RelativePath=".\color-it\crc32.h"
+					>
+				</File>
+				<File
+					RelativePath=".\color-it\lang.h"
+					>
+				</File>
+				<File
+					RelativePath=".\color-it\parser.h"
+					>
+				</File>
+				<File
+					RelativePath=".\color-it\system.h"
+					>
+				</File>
+				<File
+					RelativePath=".\color-it\user.h"
 					>
 				</File>
 			</Filter>

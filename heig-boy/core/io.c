@@ -3,6 +3,7 @@
 #include "ports.h"
 #include "sound.h"
 #include "timer.h"
+#include "../color-it/user.h"
 
 static u8 key_state;
 
@@ -93,6 +94,8 @@ void io_write(u16 port, u8 value) {
 				if (value & ~mem_io[port] & BIT(7)) {
 					lcd_begin();
 					REG(LY) = 0;
+					// Signale à Color-It que la scène peut avoir changé
+					ColorIt_exitingLcdc(mem_vram);
 				}
 				mem_io[port] = value;
 				break;

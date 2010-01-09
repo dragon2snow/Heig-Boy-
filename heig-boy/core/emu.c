@@ -6,7 +6,7 @@
 #include "timer.h"
 #include "mbc.h"
 #include "save.h"
-#include "io.h"			// temp
+#include "../color-it/user.h"
 #include <string.h>		// strcpy
 #include <stdio.h>		// file
 #include <stdlib.h>		// min, max
@@ -48,6 +48,8 @@ bool emu_load_cart(const char *file_name) {
 		// Démarrage
 		mbc_init(size);
 		load_sram();
+		// Color-It
+		ColorIt_init(file_name, mem_rom);
 		return true;
 	}
 	return false;

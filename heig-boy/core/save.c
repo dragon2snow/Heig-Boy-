@@ -5,6 +5,7 @@
 #include "mbc.h"
 #include "mem.h"
 #include "save.h"
+#include "../color-it/user.h"
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -57,10 +58,11 @@ void save_sram() {
 }
 
 void save_state(int slot) {
-	// Ecrit un fichier .st0
+	// Ecrit un fichier .stX
 	FILE *f;
-	char st_name[256];
-	change_ext(st_name, emu_file_name, ".st0");
+	char st_name[256], ext[16];
+	sprintf(ext, ".st%i", slot);
+	change_ext(st_name, emu_file_name, ext);
 	f = fopen(st_name, "wb");
 	if (f) {
 		// Ecriture des différents champs
@@ -101,10 +103,11 @@ void save_state(int slot) {
 }
 
 void load_state(int slot) {
-	// Lit un fichier .st0
+	// Lit un fichier .stX
 	FILE *f;
-	char st_name[256];
-	change_ext(st_name, emu_file_name, ".st0");
+	char st_name[256], ext[16];
+	sprintf(ext, ".st%i", slot);
+	change_ext(st_name, emu_file_name, ext);
 	f = fopen(st_name, "rb");
 	if (f) {
 		// Lecture des différents champs
@@ -147,6 +150,8 @@ void load_state(int slot) {
 			fread(&size, sizeof(size), 1, f);
 			size = min(size, sizeof(mbc_params_t));
 			fread(mbc_get_params(), 1, size, f);
+			// Signale à ColorIt de mettre à jour la scène
+			ColorIt_exitingLcdc(mem_vram);
 		}
 		fclose(f);
 	}
