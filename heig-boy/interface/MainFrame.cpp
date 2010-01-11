@@ -67,6 +67,8 @@ MainWindow::MainWindow()
 	for (int i=0; i<144 * 160; ++i)
 		lcdPixels[i]= 0;
 
+	currentSlot = 0;
+
 	pauseGame = false;
 
 	//Création des menus
@@ -192,7 +194,7 @@ void MainWindow::onKeyDown(wxKeyEvent& event)
 	{
 		// Un save state n'est pas cohérent en milieu de frame...
 		refreshManager->mutexInFrame.Lock();
-		save_state(0);
+		save_state(currentSlot);
 		save_sram();
 		refreshManager->mutexInFrame.Unlock();
 		myStatusBar->SetStatusText(_("Etat sauvegarde"));
@@ -201,13 +203,27 @@ void MainWindow::onKeyDown(wxKeyEvent& event)
 	{
 		// Pareil pour le chargement
 		refreshManager->mutexInFrame.Lock();
-		load_state(0);
+		if (load_state(currentSlot))
+			myStatusBar->SetStatusText(_("Etat precedent charge"));
+		else
+			myStatusBar->SetStatusText(_("Slot vide"));
 		refreshManager->mutexInFrame.Unlock();
-		myStatusBar->SetStatusText(_("Etat precedent charge"));
+		
 	}
 	else if(keys->isButton(KeysMap::keyTurbo, event.m_keyCode))
 	{
 		refreshManager->turbo(true);
+	}
+	else if(keys->isButton(keys->keyIncSlot, event.m_keyCode))
+	{
+		this->currentSlot = (currentSlot + 1) %10;
+		myStatusBar->SetStatusText(wxString::Format("Slot courant : %d", currentSlot));
+	}
+	else if(keys->isButton(keys->keyDecSlot, event.m_keyCode))
+	{
+		if (--currentSlot < 0)
+			currentSlot = 9;
+		myStatusBar->SetStatusText(wxString::Format("Slot courant : %d", currentSlot));
 	}
 	else //Touche de la GB
 	{
@@ -310,7 +326,7 @@ void MainWindow::mnuAbout(wxCommandEvent& WXUNUSED(event))
 	wxAboutDialogInfo info;
 	info.SetName(_("HEIG-BOY Emulateur Game-Boy"));
 	info.SetDescription(_("Emulateur de la célèbre console Nintendo Game-Boy."));
-	info.SetCopyright(_T("(C) 2010 Nicolas Blanchard, Florian Brunniman, David Puippe, Raphael Plomb, Julien Rinaldini"));
+	info.SetCopyright(_T("(C) 2010 Nicolas Blanchard, Florian Brönniman, David Puippe, Raphael Plomb, Julien Rinaldini"));
 
 	info.AddDeveloper(_T("Nicolas Blanchard"));
 	info.AddDeveloper(_T("Florianr Brunniman"));

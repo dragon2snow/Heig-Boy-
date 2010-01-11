@@ -15,13 +15,15 @@ void KeysMap::reset()
 	keyMap[keyDown] = (wxKeyCode)'S';
 	keyMap[keyLeft] = (wxKeyCode)'A';
 	keyMap[keyRight] = (wxKeyCode)'D';
-	keyMap[keyA] = (wxKeyCode)'K';
-	keyMap[keyB] = (wxKeyCode)'L';
+	keyMap[keyA] = (wxKeyCode)'L';
+	keyMap[keyB] = (wxKeyCode)'K';
 	keyMap[keyStart] = WXK_RETURN;
 	keyMap[keySelect] = WXK_BACK;
 	keyMap[keyPause] = (wxKeyCode)'P';
 	keyMap[keySaveState] = WXK_F5;
 	keyMap[keyLoadState] = WXK_F6;
+	keyMap[keyIncSlot] = WXK_F8;
+	keyMap[keyDecSlot] = WXK_F7;
 	keyMap[keyTurbo] = (wxKeyCode)'T';
 }
 
@@ -32,7 +34,7 @@ bool KeysMap::isButton(KeysMap::Buttons button, long code) const
 
 void KeysMap::copyFromMap(const KeysMap& keys)
 {
-	for (int i=0; i<12; ++i)
+	for (int i=0; i<nbButtons; ++i)
 	{
 		this->keyMap[i] = keys.keyMap[i];
 	}
@@ -45,7 +47,7 @@ void KeysMap::save(const char* fileName)
 
 	if (!file.bad())
 	{
-		for (int i=0; i<12; ++i)
+		for (int i=0; i<nbButtons; ++i)
 		{
 			file << keyMap[i] << ' ';
 		}
@@ -61,7 +63,7 @@ void KeysMap::load(const char* fileName)
 
 	if (!file.bad())
 	{
-		for (int i=0; i<12; ++i)
+		for (int i=0; i<nbButtons; ++i)
 		{
 			file >> keyMap[i];
 		}

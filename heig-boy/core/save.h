@@ -16,7 +16,8 @@ void save_state(int slot);
 
 /** Restore l'état précédemment sauvegardé de la machine.
 	\param slot numéro du slot de sauvegarde (0-9)
+	\return vrai si le slot a été chargé
 */
-void load_state(int slot);
+int load_state(int slot);
 
 #endif

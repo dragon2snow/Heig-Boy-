@@ -28,7 +28,15 @@ public:
 				  keyPause, 
 				  keySaveState, 
 				  keyLoadState, 
-				  keyTurbo};
+				  keyTurbo,
+				  keyIncSlot,
+				  keyDecSlot
+	};
+
+	static const int nbButtons = 14;
+
+	//Les codes des boutons bindés
+	long keyMap[nbButtons];
 
 	/**
 	Constructeur
@@ -51,9 +59,6 @@ public:
 	\param keys La KeysMap à copier
 	*/
 	void copyFromMap(const KeysMap& keys);
-
-	//Les codes des boutons bindés
-	long keyMap[12];
 
 	/**
 	Permet de sauvegarder les touches dans un fichier CFG.

@@ -47,7 +47,7 @@
 				PreprocessorDefinitions="WIN32;_DEBUG;_WINDOWS;_CRT_SECURE_NO_WARNINGS"
 				MinimalRebuild="true"
 				BasicRuntimeChecks="3"
-				RuntimeLibrary="3"
+				RuntimeLibrary="1"
 				UsePrecompiledHeader="0"
 				WarningLevel="3"
 				DebugInformationFormat="4"
@@ -124,7 +124,7 @@
 				FavorSizeOrSpeed="1"
 				AdditionalIncludeDirectories="win32;C:\wxWidgets-2.8.10\include"
 				PreprocessorDefinitions="WIN32;NDEBUG;_WINDOWS;_CRT_SECURE_NO_WARNINGS"
-				RuntimeLibrary="2"
+				RuntimeLibrary="0"
 				EnableFunctionLevelLinking="true"
 				UsePrecompiledHeader="0"
 				WarningLevel="3"
@@ -252,6 +252,14 @@
 				Name="interface"
 				>
 				<File
+					RelativePath=".\interface\CaptureDialog.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\interface\CapturePanel.cpp"
+					>
+				</File>
+				<File
 					RelativePath=".\interface\ConfigDialog.cpp"
 					>
 				</File>
@@ -361,6 +369,14 @@
 			<Filter
 				Name="interface"
 				>
+				<File
+					RelativePath=".\interface\CaptureDialog.h"
+					>
+				</File>
+				<File
+					RelativePath=".\interface\CapturePanel.h"
+					>
+				</File>
 				<File
 					RelativePath=".\interface\ConfigDialog.h"
 					>

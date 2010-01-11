@@ -102,7 +102,7 @@ void save_state(int slot) {
 	}
 }
 
-void load_state(int slot) {
+int load_state(int slot) {
 	// Lit un fichier .stX
 	FILE *f;
 	char st_name[256], ext[16];
@@ -154,5 +154,7 @@ void load_state(int slot) {
 			ColorIt_exitingLcdc(mem_vram);
 		}
 		fclose(f);
+		return 1;
 	}
+	return 0;
 }

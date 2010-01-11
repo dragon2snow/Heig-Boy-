@@ -17,7 +17,11 @@ public:
 
 class MainWindow : public wxFrame
 {
+	//Tableau rerpésentant le lcd
 	u32 lcdPixels[144 * 160];
+
+	//Le slot de sauvegarde courant
+	int currentSlot;
 
 	class RefreshManager *refreshManager;
 

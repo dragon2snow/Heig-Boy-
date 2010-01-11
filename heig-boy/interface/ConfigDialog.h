@@ -29,7 +29,7 @@ private:
 	KeysMap &mapParent;
 
 	//Les boutons de jeux
-	wxButton* buttons[12];
+	wxButton* buttons[KeysMap::nbButtons];
 	//Bouton pour sauver les modif
 	wxButton* btnSave;
 	//Bouton permettant de remettre les touches par défaut

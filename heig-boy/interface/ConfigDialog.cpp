@@ -16,6 +16,8 @@ EVT_BUTTON(KeysMap::keyUp, ConfigDialog::onConfigurableButton)
 	EVT_BUTTON(KeysMap::keySaveState, ConfigDialog::onConfigurableButton)
 	EVT_BUTTON(KeysMap::keyLoadState, ConfigDialog::onConfigurableButton)
 	EVT_BUTTON(KeysMap::keyTurbo, ConfigDialog::onConfigurableButton)
+	EVT_BUTTON(KeysMap::keyIncSlot, ConfigDialog::onConfigurableButton)
+	EVT_BUTTON(KeysMap::keyDecSlot, ConfigDialog::onConfigurableButton)
 
 	EVT_BUTTON(idBtnSave, ConfigDialog::onSaveButton)
 	EVT_BUTTON(idBtnDefault, ConfigDialog::onDefaultButton)
@@ -116,14 +118,14 @@ void ConfigDialog::init()
                            wxALIGN_CENTER_VERTICAL | wxALL, 5);
 	}
 
-	//Création et ajout du bouton 'A'
-	buttons[KeysMap::keyA] = new wxButton(this, KeysMap::keyA);
-	keyboardGridSizer->Add(buttons[KeysMap::keyA], 0, wxALIGN_CENTER_HORIZONTAL | 
-                           wxALIGN_CENTER_VERTICAL | wxALL);
-
 	//Création et ajout du bouton 'B'
 	buttons[KeysMap::keyB] = new wxButton(this, KeysMap::keyB);
 	keyboardGridSizer->Add(buttons[KeysMap::keyB], 0, wxALIGN_CENTER_HORIZONTAL | 
+                           wxALIGN_CENTER_VERTICAL | wxALL);
+
+	//Création et ajout du bouton 'A'
+	buttons[KeysMap::keyA] = new wxButton(this, KeysMap::keyA);
+	keyboardGridSizer->Add(buttons[KeysMap::keyA], 0, wxALIGN_CENTER_HORIZONTAL | 
                            wxALIGN_CENTER_VERTICAL | wxALL);
 
 	//Ajout du label 'Left'
@@ -145,12 +147,12 @@ void ConfigDialog::init()
                            wxALIGN_CENTER_VERTICAL | wxALL, 5);
 	}
 
-	//Label 'A'
-	keyboardGridSizer->Add(new wxStaticText(this, wxID_STATIC, _("A")),0,wxALIGN_CENTER_HORIZONTAL |
-                           wxALIGN_CENTER_VERTICAL | wxALL | wxADJUST_MINSIZE);
-
 	//Label 'B'
 	keyboardGridSizer->Add(new wxStaticText(this, wxID_STATIC, _("B")),0,wxALIGN_CENTER_HORIZONTAL |
+                           wxALIGN_CENTER_VERTICAL | wxALL | wxADJUST_MINSIZE);
+
+	//Label 'A'
+	keyboardGridSizer->Add(new wxStaticText(this, wxID_STATIC, _("A")),0,wxALIGN_CENTER_HORIZONTAL |
                            wxALIGN_CENTER_VERTICAL | wxALL | wxADJUST_MINSIZE);
 
 	//Espace
@@ -213,7 +215,7 @@ void ConfigDialog::init()
 	sizer->Add(specialBoxSizer, 0, wxALIGN_CENTER_HORIZONTAL | wxALL, 5);
 
 	//Grid Sizer pour les boutons GB
-	wxFlexGridSizer *specialGridSizer = new wxFlexGridSizer(4, 2);
+	wxFlexGridSizer *specialGridSizer = new wxFlexGridSizer(4, 4);
 	specialBoxSizer->Add(specialGridSizer,0, wxALIGN_CENTER_HORIZONTAL | wxALL,0);
 
 	//Création et ajout du bouton 'Turbo'
@@ -224,6 +226,26 @@ void ConfigDialog::init()
 	//Bouton 'Pause'
 	buttons[KeysMap::keyPause] = new wxButton(this, KeysMap::keyPause);
 	specialGridSizer->Add(buttons[KeysMap::keyPause], 0, wxALIGN_CENTER_HORIZONTAL | 
+                           wxALIGN_CENTER_VERTICAL | wxALL, 5);
+	
+	//2 espaces
+	specialGridSizer->Add(5, 5, 0, wxALIGN_CENTER_HORIZONTAL |
+                           wxALIGN_CENTER_VERTICAL | wxALL, 5);
+	specialGridSizer->Add(5, 5, 0, wxALIGN_CENTER_HORIZONTAL |
+                           wxALIGN_CENTER_VERTICAL | wxALL, 5);
+
+	//Label 'Turbo'
+	specialGridSizer->Add(new wxStaticText(this, wxID_STATIC, _("Turbo")),0,wxALIGN_CENTER_HORIZONTAL |
+                           wxALIGN_CENTER_VERTICAL | wxALL | wxADJUST_MINSIZE);
+
+	//Label 'Pause'
+	specialGridSizer->Add(new wxStaticText(this, wxID_STATIC, _("Pause")),0,wxALIGN_CENTER_HORIZONTAL |
+                           wxALIGN_CENTER_VERTICAL | wxALL | wxADJUST_MINSIZE);
+
+	//2 espaces
+	specialGridSizer->Add(5, 5, 0, wxALIGN_CENTER_HORIZONTAL |
+                           wxALIGN_CENTER_VERTICAL | wxALL, 5);
+	specialGridSizer->Add(5, 5, 0, wxALIGN_CENTER_HORIZONTAL |
                            wxALIGN_CENTER_VERTICAL | wxALL, 5);
 
 	//Bouton 'Save State'
@@ -236,13 +258,15 @@ void ConfigDialog::init()
 	specialGridSizer->Add(buttons[KeysMap::keyLoadState], 0, wxALIGN_CENTER_HORIZONTAL | 
                            wxALIGN_CENTER_VERTICAL | wxALL, 5);
 
-	//Label 'Turbo'
-	specialGridSizer->Add(new wxStaticText(this, wxID_STATIC, _("Turbo")),0,wxALIGN_CENTER_HORIZONTAL |
-                           wxALIGN_CENTER_VERTICAL | wxALL | wxADJUST_MINSIZE);
+	//Bouton 'Inc Slot'
+	buttons[KeysMap::keyIncSlot] = new wxButton(this, KeysMap::keyIncSlot);
+	specialGridSizer->Add(buttons[KeysMap::keyIncSlot], 0, wxALIGN_CENTER_HORIZONTAL | 
+                           wxALIGN_CENTER_VERTICAL | wxALL, 5);
 
-	//Label 'Pause'
-	specialGridSizer->Add(new wxStaticText(this, wxID_STATIC, _("Pause")),0,wxALIGN_CENTER_HORIZONTAL |
-                           wxALIGN_CENTER_VERTICAL | wxALL | wxADJUST_MINSIZE);
+	//Bouton 'Dec Slot'
+	buttons[KeysMap::keyDecSlot] = new wxButton(this, KeysMap::keyDecSlot);
+	specialGridSizer->Add(buttons[KeysMap::keyDecSlot], 0, wxALIGN_CENTER_HORIZONTAL | 
+                           wxALIGN_CENTER_VERTICAL | wxALL, 5);
 
 	//Label 'Save State'
 	specialGridSizer->Add(new wxStaticText(this, wxID_STATIC, _("Save State")),0,wxALIGN_CENTER_HORIZONTAL |
@@ -250,6 +274,14 @@ void ConfigDialog::init()
 
 	//Label 'Load State'
 	specialGridSizer->Add(new wxStaticText(this, wxID_STATIC, _("Load State")),0,wxALIGN_CENTER_HORIZONTAL |
+                           wxALIGN_CENTER_VERTICAL | wxALL | wxADJUST_MINSIZE);
+
+	//Label 'Inc Slot'
+	specialGridSizer->Add(new wxStaticText(this, wxID_STATIC, _("Inc Slot")),0,wxALIGN_CENTER_HORIZONTAL |
+                           wxALIGN_CENTER_VERTICAL | wxALL | wxADJUST_MINSIZE);
+
+	//Label 'Dec Slot'
+	specialGridSizer->Add(new wxStaticText(this, wxID_STATIC, _("Dec Slot")),0,wxALIGN_CENTER_HORIZONTAL |
                            wxALIGN_CENTER_VERTICAL | wxALL | wxADJUST_MINSIZE);
 
 
@@ -313,7 +345,7 @@ void ConfigDialog::onConfigurableButton(wxCommandEvent &event)
 
 void ConfigDialog::showButtonsValues()
 {
-	for (int i=0; i<12; ++i)
+	for (int i=0; i<KeysMap::nbButtons; ++i)
 	{
 		buttons[i]->SetLabel(wxString::Format(_("%ld"), local.keyMap[i]));
 	}
