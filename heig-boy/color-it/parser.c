@@ -14,7 +14,7 @@
 // Variables d'état de lecture
 static int curLine, curCol, lastLine, lastCol, error;
 static Token last, next;
-static FILE *f;
+static FILE *f = NULL;
 static int callCount, callStack[MAX_CALL_DEPTH];
 static const unsigned char *lexNames[] = {
 	"identifier", "number", "string", "dot",
@@ -305,6 +305,10 @@ int ColorIt_execScript(const char *fileName, const char *label) {
 		while (!readIf(EOLINE) && !nextIs(EOFILE))
 			readAny();
 	} while (!error && !nextIs(EOFILE));
-	fclose(f);
 	return 1;
+}
+
+void ColorIt_stop() {
+	if (f)
+		fclose(f);
 }

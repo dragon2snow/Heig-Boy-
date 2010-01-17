@@ -66,7 +66,7 @@ static u32 *lcd_buffer = NULL;
 		seuls les 160 pixels du milieu sont visibles, les autres sont utilisés
 		pour les débordements éventuels des routines graphiques.
 */
-void backdrop_render(u32 *pixel);
+static void backdrop_render(u32 *pixel);
 /** Réalise le rendu de la ligne courante du BG (background).
 	Il s'agit d'une tile map.
 	\param pixel tampon de destination, contenant au moins 176 pixels 32 bits.

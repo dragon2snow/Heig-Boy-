@@ -43,17 +43,19 @@ void load_sram() {
 }
 
 void save_sram() {
-	FILE *f;
-	char sram_name[256];
-	// Détermine le nom du fichier SRAM
-	change_ext(sram_name, emu_file_name, ".sav");
-	f = fopen(sram_name, "wb");
-	if (f) {
-		// Récupère la SRAM dans un tampon temporaire
-		u8 tmp_buf[32768];
-		unsigned size = mbc_get_sram_data(tmp_buf, sizeof(tmp_buf));
-		fwrite(tmp_buf, size, 1, f);
-		fclose(f);
+	// Récupère la SRAM dans un tampon temporaire
+	u8 tmp_buf[32768];
+	unsigned size = mbc_get_sram_data(tmp_buf, sizeof(tmp_buf));
+	if (size > 0) {
+		FILE *f;
+		char sram_name[256];
+		// Détermine le nom du fichier SRAM
+		change_ext(sram_name, emu_file_name, ".sav");
+		f = fopen(sram_name, "wb");
+		if (f) {
+			fwrite(tmp_buf, size, 1, f);
+			fclose(f);
+		}
 	}
 }
 

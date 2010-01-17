@@ -6,7 +6,6 @@
 #include <stdio.h>
 #include <string.h>
 #include <windows.h>
-#include <process.h>
 #include "parser.h"
 #include "lang.h"
 #include "user.h"
@@ -44,12 +43,23 @@ static void init() {
 
 int ColorIt_init(const char *fullRomPath, const unsigned char *romData) {
 	char name[128], fullName[1024];
+	unsigned i;
 
 	ColorIt_systemInit();
 	init();
 
 	// rom_directory/cart_name.pal.ini
 	memcpy(name, romData + 0x134, 15);
+	// Only allowed chars in the cart name
+	for (i = 0; fullName[i]; i++) {
+        if (name[i] >= 'A' && name[i] <= 'Z' ||
+            name[i] >= 'a' && name[i] <= 'z' ||
+            name[i] == ' ' || name[i] == '-' || name[i] == '.' ||
+            name[i] >= '0' && name[i] <= '9' ||
+			name[i] == 0) {}
+		else
+			name[i] = '_';
+	}
 	name[15] = 0;
 	strcat(name, ".pal.ini");
 	extractPath(fullName, fullRomPath);
