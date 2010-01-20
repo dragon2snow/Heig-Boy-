@@ -56,10 +56,18 @@ bool emu_load_cart(const char *file_name) {
 }
 
 void emu_do_frame(bool draw) {
+	// Exécute une frame
 	lcd_frame_end_flag = false;
 	while (!lcd_frame_end_flag) {
 		unsigned elapsed = cpu_exec_instruction() * 4;
 		lcd_tick(elapsed, draw);
 		timer_tick(elapsed);
+	}
+
+	// ColorIt: une demande de rechargement est effectuée
+	if (ColorIt_reload) {
+		ColorIt_systemInit();
+		ColorIt_exitingLcdc(mem_vram);
+		ColorIt_reload = 0;
 	}
 }

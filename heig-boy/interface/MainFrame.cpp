@@ -8,11 +8,9 @@
 #include "KeysMap.h"
 #include "ConfigDialog.h"
 
-
-extern "C" 
-{
-#include "../core/io.h"
-#include "../core/save.h"
+extern "C"  {
+	#include "../core/io.h"
+	#include "../core/save.h"
 }
 
 
@@ -27,6 +25,7 @@ EVT_PAINT(MainWindow::onPaint)
 EVT_KEY_DOWN(MainWindow::onKeyDown)
 EVT_KEY_UP(MainWindow::onKeyUp)
 EVT_CLOSE(MainWindow::onClose)
+EVT_SIZE(MainWindow::onSizing)
 EVT_MENU(MainWindow::idMenuQuit,  MainWindow::mnuClose)
 EVT_MENU(MainWindow::idMenuOuvrir, MainWindow::mnuOuvrir)
 EVT_MENU(MainWindow::idMenuConfig, MainWindow::mnuConfiguration)
@@ -131,6 +130,13 @@ void MainWindow::onPaint(wxPaintEvent& event)
 		dcPaint.SetUserScale(rect.width / 160.0, rect.height / 144.0);
 		dcPaint.DrawBitmap(wxBitmap(img), 0, 0);
 #endif
+}
+
+void MainWindow::onSizing(wxSizeEvent& event) {
+	wxRect clientRect(GetClientRect());
+	int scaleX = (clientRect.width + 80) / 160,
+		scaleY = (clientRect.height + 72) / 144;
+	SetClientSize(160 * scaleX, 144 * scaleY);
 }
 
 /**

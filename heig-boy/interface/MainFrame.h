@@ -59,6 +59,7 @@ public:
 	void onKeyDown(wxKeyEvent& event);
 	void onKeyUp(wxKeyEvent& event);
 	void onClose(wxCloseEvent& event);
+	void onSizing(wxSizeEvent& event);
 	void mnuClose(wxCommandEvent& WXUNUSED(event));
 	void mnuConfiguration(wxCommandEvent& WXUNUSED(event));
 	void mnuAbout(wxCommandEvent& WXUNUSED(event));

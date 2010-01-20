@@ -17,8 +17,10 @@ unsigned short ColorIt_tileCustom[384];
 unsigned char ColorIt_tileData[384 * 16];
 unsigned long ColorIt_palette[NB_PALETTES * 4];
 
+extern void startCheckThread(const char *cartName, const char *fullPath);
+
 // Extracts the path (without fill name) from the full path fileName to dest
-static void extractPath(char *dest, const char *fileName) {
+void extractPath(char *dest, const char *fileName) {
 	int i;
 	strcpy(dest, fileName);
 	for (i = strlen(dest) - 1; i >= 0; i--) {
@@ -51,7 +53,7 @@ int ColorIt_init(const char *fullRomPath, const unsigned char *romData) {
 	// rom_directory/cart_name.pal.ini
 	memcpy(name, romData + 0x134, 15);
 	// Only allowed chars in the cart name
-	for (i = 0; fullName[i]; i++) {
+	for (i = 0; i < 15; i++) {
         if (name[i] >= 'A' && name[i] <= 'Z' ||
             name[i] >= 'a' && name[i] <= 'z' ||
             name[i] == ' ' || name[i] == '-' || name[i] == '.' ||
@@ -67,7 +69,9 @@ int ColorIt_init(const char *fullRomPath, const unsigned char *romData) {
 
 	// By default no tile is included to the Crc
 	memset(ColorIt_tileIncluded, 0, sizeof(ColorIt_tileIncluded));
-	return ColorIt_enabled = ColorIt_execScript(fullName, "init");
+	if (ColorIt_enabled = ColorIt_execScript(fullName, "init"))
+		startCheckThread(name, fullName);
+	return ColorIt_enabled;
 }
 
 void ColorIt_execCrc(unsigned crc32) {

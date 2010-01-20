@@ -28,6 +28,8 @@ extern unsigned char ColorIt_tileIncluded[384 / 8];
 extern unsigned long ColorIt_palette[NB_PALETTES * 4];
 // Custom tile data
 extern unsigned char ColorIt_tileData[384 * 16];
+// [optional] When fileCheckThread detects a change
+extern int ColorIt_reload;
 
 #include "system.h"
 
